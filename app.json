@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Тамагочи",
-    "slug": "tamagochi-app",
+    "name": "Тамаго",
+    "slug": "tamago-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tamagochiapp",
+    "scheme": "tamagoapp",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tamagochiapp.app",
+      "bundleIdentifier": "com.tamagoapp.app",
       "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Нужен доступ к фото, чтобы вы могли выбрать аватар для своего питомца."
       }
     },
     "android": {
-      "package": "com.tamagochiapp.app",
+      "package": "com.tamagoapp.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#7c4dff",

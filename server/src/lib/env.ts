@@ -27,5 +27,5 @@ export const env = {
   smtpPort: Number(process.env.SMTP_PORT ?? 587),
   smtpUser: process.env.SMTP_USER ?? '',
   smtpPass: process.env.SMTP_PASS ?? '',
-  smtpFrom: process.env.SMTP_FROM ?? 'Тамагочи <no-reply@tamagochi.app>',
+  smtpFrom: process.env.SMTP_FROM ?? 'Тамаго <no-reply@tamago.app>',
 };

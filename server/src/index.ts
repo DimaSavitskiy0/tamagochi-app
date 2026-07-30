@@ -37,7 +37,7 @@ app.use('/stats', statsRouter);
 app.use(errorHandler);
 
 app.listen(env.port, () => {
-  console.log(`tamagochi-server listening on port ${env.port}`);
+  console.log(`tamago-server listening on port ${env.port}`);
 });
 
 startSubscriptionRenewalJob();

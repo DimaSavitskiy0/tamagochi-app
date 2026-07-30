@@ -47,7 +47,7 @@ export function createYookassaPayment(ownerId: string): Promise<YookassaPayment>
     confirmation: { type: 'redirect', return_url: env.appReturnUrl },
     capture: true,
     save_payment_method: true,
-    description: 'Тамагочи Pro — подписка на 1 месяц',
+    description: 'Тамаго Pro — подписка на 1 месяц',
     metadata: { owner_id: ownerId },
   });
 }
@@ -59,7 +59,7 @@ export function createRecurringPayment(ownerId: string, paymentMethodId: string)
     amount: { value: env.yookassaProPriceRub, currency: 'RUB' },
     payment_method_id: paymentMethodId,
     capture: true,
-    description: 'Тамагочи Pro — продление подписки',
+    description: 'Тамаго Pro — продление подписки',
     metadata: { owner_id: ownerId },
   });
 }
