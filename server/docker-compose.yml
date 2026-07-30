@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tamagochi
+      POSTGRES_PASSWORD: tamagochi
+      POSTGRES_DB: tamagochi
+    ports:
+      - '5432:5432'
+    volumes:
+      - tamagochi_pg_data:/var/lib/postgresql/data
+
+volumes:
+  tamagochi_pg_data:

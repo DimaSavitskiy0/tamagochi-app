@@ -1,0 +1,192 @@
+// Prisma schema — replaces supabase/schema.sql. Authorization that used to live in
+// Postgres RLS policies now lives in server/src/middleware/auth.ts + per-route ownership
+// checks (see server/src/lib/ownership.ts). Range constraints (hunger/mood/health
+// 0-100) are validated with zod in the route handlers rather than DB check constraints,
+// consistent with how every other input is validated.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String?  @map("first_name")
+  lastName     String?  @map("last_name")
+  phone        String?
+  // Audit record of consent to the privacy policy / offer at sign-up (152-ФЗ requires
+  // being able to show *that* and *when* consent was given, not just a UI checkbox).
+  // See POST /auth/sign-up in routes/auth.ts.
+  consentGivenAt DateTime? @map("consent_given_at")
+  // Set by POST /auth/forgot-password, cleared on successful POST /auth/reset-password
+  // or once expired — only ever the sha256 hash, mirroring passwordHash/RefreshToken.
+  resetCodeHash      String?   @map("reset_code_hash")
+  resetCodeExpiresAt DateTime? @map("reset_code_expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  refreshTokens    RefreshToken[]
+  pets             Pet[]
+  diaryEntries     DiaryEntry[]
+  reminders        Reminder[]
+  petStatSnapshots PetStatSnapshot[]
+  petEvents        PetEvent[]
+  subscription     Subscription?
+  userStats        UserStats?
+
+  @@map("users")
+}
+
+// Refresh tokens are stored (not just signed+trusted) so sign-out / token theft can
+// revoke a specific session — a bare stateless JWT refresh token couldn't be revoked.
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+enum PetSpecies {
+  cat
+  dog
+  rabbit
+  hamster
+  bird
+  fish
+  other
+}
+
+model Pet {
+  id        String     @id @default(uuid())
+  ownerId   String     @map("owner_id")
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String     @default("Питомец")
+  breed     String?
+  ageYears  Decimal?   @map("age_years")
+  species   PetSpecies @default(cat)
+  hunger    Int        @default(100)
+  mood      Int        @default(100)
+  health    Int        @default(100)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  diaryEntries     DiaryEntry[]
+  reminders        Reminder[]
+  petStatSnapshots PetStatSnapshot[]
+  petEvents        PetEvent[]
+
+  @@index([ownerId])
+  @@map("pets")
+}
+
+model DiaryEntry {
+  id        String   @id @default(uuid())
+  petId     String   @map("pet_id")
+  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  ownerId   String   @map("owner_id")
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  entryType String   @map("entry_type")
+  content   String
+  moodTag   String?  @map("mood_tag")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([petId])
+  @@index([ownerId])
+  @@map("diary_entries")
+}
+
+model Reminder {
+  id          String    @id @default(uuid())
+  petId       String    @map("pet_id")
+  pet         Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  ownerId     String    @map("owner_id")
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  type        String
+  dueDate     DateTime  @map("due_date")
+  completedAt DateTime? @map("completed_at")
+  // 'auto' reminders are derived client-side from diary history; 'manual' ones were
+  // scheduled by the owner via the calendar picker (see hooks/useReminders.ts).
+  source      String    @default("auto")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([petId])
+  @@index([ownerId])
+  @@map("reminders")
+}
+
+model PetStatSnapshot {
+  id         String   @id @default(uuid())
+  petId      String   @map("pet_id")
+  pet        Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  ownerId    String   @map("owner_id")
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  hunger     Int
+  mood       Int
+  health     Int
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  @@index([petId])
+  @@index([ownerId])
+  @@map("pet_stat_snapshots")
+}
+
+model PetEvent {
+  id        String   @id @default(uuid())
+  petId     String   @map("pet_id")
+  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  ownerId   String   @map("owner_id")
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title     String
+  eventDate DateTime @map("event_date")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([petId])
+  @@index([ownerId])
+  @@map("pet_events")
+}
+
+model Subscription {
+  id       String @id @default(uuid())
+  ownerId  String @unique @map("owner_id")
+  owner    User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  plan     String @default("free")
+  status   String @default("active")
+  currentPeriodEnd DateTime? @map("current_period_end")
+  // 7-day free trial from account creation — set once at sign-up, never client-writable.
+  trialEndsAt       DateTime @map("trial_ends_at")
+  yookassaPaymentId String?  @map("yookassa_payment_id")
+  // Saved YooKassa payment method from the first payment (save_payment_method: true) —
+  // reused by the off-session recurring charge in jobs/renewSubscriptions.ts every
+  // billing period, so the owner isn't asked to re-enter their card each month.
+  yookassaPaymentMethodId String? @map("yookassa_payment_method_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+model UserStats {
+  ownerId        String    @id @map("owner_id")
+  owner          User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  totalOpens     Int       @default(0) @map("total_opens")
+  currentStreak  Int       @default(0) @map("current_streak")
+  longestStreak  Int       @default(0) @map("longest_streak")
+  lastActiveDate DateTime? @map("last_active_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("user_stats")
+}

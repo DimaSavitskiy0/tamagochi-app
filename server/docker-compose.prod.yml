@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tamagochi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Порт наружу не открываем — только api достаёт до postgres внутри docker-сети.
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/tamagochi?schema=public"
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      PORT: 3000
+      PRO_PLAN_PRICE_RUB: ${PRO_PLAN_PRICE_RUB:-199.00}
+      APP_RETURN_URL: ${APP_RETURN_URL:-}
+      # Опционально: без них ИИ-совет/оплата ЮKassa просто не работают
+      # (503 на соответствующих роутах), остальной сервис не ломается.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID:-}
+      YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY:-}
+      # Опционально: без SMTP_HOST код восстановления пароля просто логируется
+      # в консоль контейнера вместо реальной отправки письмом.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+    # Пока нет домена, наружу (в интернет) не публикуем — только на localhost
+    # сервера, для проверки через curl по SSH. Как появится домен, порт уберём
+    # совсем и подключим сервис к сети общего Caddy (см. server/README.md).
+    ports:
+      - "127.0.0.1:3001:3000"
+
+volumes:
+  postgres_data:
