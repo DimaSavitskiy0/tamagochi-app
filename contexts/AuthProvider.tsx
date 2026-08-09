@@ -6,7 +6,7 @@ import { api, isBackendConfigured, onSessionExpired, restoreTokens, setTokens, t
 // Offline/guest mode has no real backend session to restore from, so its identity
 // (name/phone/email, onboarding state) is persisted here instead — otherwise it would
 // reset to nothing on every app restart, unlike the online mode's JWT-backed session.
-const GUEST_STATE_KEY = 'tamago_guest_state';
+const GUEST_STATE_KEY = 'lapgo_guest_state';
 
 type PersistedGuestState = {
   guestProfile: OwnerProfile | null;

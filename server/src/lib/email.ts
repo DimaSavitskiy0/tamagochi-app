@@ -27,7 +27,7 @@ export async function sendPasswordResetEmail(to: string, code: string): Promise<
   await getTransporter().sendMail({
     from: env.smtpFrom,
     to,
-    subject: 'Код для сброса пароля — Тамаго',
+    subject: 'Код для сброса пароля — ЛапGo',
     text: `Ваш код для сброса пароля: ${code}\n\nКод действует 15 минут. Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.`,
   });
 }

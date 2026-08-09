@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: tamago
-      POSTGRES_PASSWORD: tamago
-      POSTGRES_DB: tamago
+      POSTGRES_USER: lapgo
+      POSTGRES_PASSWORD: lapgo
+      POSTGRES_DB: lapgo
     ports:
       - '5432:5432'
     volumes:
-      - tamago_pg_data:/var/lib/postgresql/data
+      - lapgo_pg_data:/var/lib/postgresql/data
 
 volumes:
-  tamago_pg_data:
+  lapgo_pg_data:

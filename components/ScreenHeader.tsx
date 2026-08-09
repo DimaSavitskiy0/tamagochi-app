@@ -11,7 +11,7 @@ type ScreenHeaderProps = {
   hasNotification?: boolean;
 };
 
-// Matches the "🐾 Тамаго 🐾" branding across every tab, so every screen opens with
+// Matches the "🐾 ЛапGo 🐾" branding across every tab, so every screen opens with
 // the same app identity. The settings/notification buttons are optional — only the
 // pet screen passes them, since that's the only place they make sense.
 export function ScreenHeader({ onSettingsPress, onNotificationPress, hasNotification }: ScreenHeaderProps) {
@@ -31,7 +31,7 @@ export function ScreenHeader({ onSettingsPress, onNotificationPress, hasNotifica
         </Pressable>
       ) : null}
 
-      <Text style={styles.title}>🐾 Тамаго 🐾</Text>
+      <Text style={styles.title}>🐾 ЛапGo 🐾</Text>
 
       {onNotificationPress ? (
         <Pressable

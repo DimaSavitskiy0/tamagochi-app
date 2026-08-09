@@ -59,7 +59,7 @@ export default function SignInScreen() {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <Text style={styles.title}>🐾 Тамаго</Text>
+        <Text style={styles.title}>🐾 ЛапGo</Text>
         <Text style={styles.subtitle}>Войдите по email и паролю, чтобы продолжить</Text>
 
         <TextInput

@@ -6,8 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 export const isBackendConfigured = Boolean(API_URL);
 
-const ACCESS_TOKEN_KEY = 'tamago.accessToken';
-const REFRESH_TOKEN_KEY = 'tamago.refreshToken';
+const ACCESS_TOKEN_KEY = 'lapgo.accessToken';
+const REFRESH_TOKEN_KEY = 'lapgo.refreshToken';
 
 export type ApiUser = { id: string; email: string; firstName: string | null; lastName: string | null; phone: string | null };
 export type AuthTokens = { accessToken: string; refreshToken: string };

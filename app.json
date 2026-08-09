@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Тамаго",
-    "slug": "tamago-app",
+    "name": "ЛапGo",
+    "slug": "lapgo-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tamagoapp",
+    "scheme": "lapgoapp",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tamagoapp.app",
+      "bundleIdentifier": "com.lapgoapp.app",
       "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Нужен доступ к фото, чтобы вы могли выбрать аватар для своего питомца."
       }
     },
     "android": {
-      "package": "com.tamagoapp.app",
+      "package": "com.lapgoapp.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#7c4dff",
