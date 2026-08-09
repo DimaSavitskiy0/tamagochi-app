@@ -1,7 +1,6 @@
 import cors from 'cors';
 import express from 'express';
 
-import { startSubscriptionRenewalJob } from './jobs/renewSubscriptions';
 import { env } from './lib/env';
 import { errorHandler } from './middleware/errorHandler';
 import { authRouter } from './routes/auth';
@@ -17,9 +16,9 @@ import { subscriptionRouter } from './routes/subscription';
 const app = express();
 
 app.use(cors({ origin: env.corsOrigin }));
-// The YooKassa webhook needs the raw body only if we were verifying signatures — we
-// verify by re-fetching the payment from YooKassa's API instead (see routes/payments.ts),
-// so plain JSON parsing is fine for every route including the webhook.
+// RuStore's webhook body carries its own AES-256-GCM encrypted payload field (see
+// lib/rustorePay.ts) rather than a raw-body HMAC signature, so plain JSON parsing is
+// fine for every route including the webhook.
 app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
@@ -39,5 +38,3 @@ app.use(errorHandler);
 app.listen(env.port, () => {
   console.log(`tamago-server listening on port ${env.port}`);
 });
-
-startSubscriptionRenewalJob();

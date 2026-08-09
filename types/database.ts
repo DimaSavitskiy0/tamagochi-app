@@ -102,7 +102,6 @@ export type Subscription = {
   status: 'active' | 'canceled' | 'past_due';
   current_period_end: string | null;
   trial_ends_at: string;
-  yookassa_payment_id: string | null;
   created_at: string;
   updated_at: string;
 };

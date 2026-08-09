@@ -49,6 +49,11 @@ type AuthContextValue = {
   /** Owner's name — from the backend when configured, or the local guest profile offline. */
   ownerProfile: OwnerProfile | null;
   hasOwnerProfile: boolean;
+  /** Real backend user id — only set when isBackendConfigured, null in offline/guest mode
+   * (nothing to purchase there). Used as the RuStore Pay `orderId` when starting a
+   * purchase (see hooks/useSubscription.ts), so the webhook can map the event back to
+   * this owner's subscription row without a separate lookup step. */
+  ownerId: string | null;
   /** True right after an offline "Войти" — an existing demo account has nothing new to
    * collect, so the owner/pet onboarding modals should stay out of the way and drop the
    * user straight on the main screen, unlike a fresh "Регистрация". */
@@ -256,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         ownerProfile,
         hasOwnerProfile,
+        ownerId: isBackendConfigured ? (user?.id ?? null) : null,
         skipOnboarding,
         sessionEpoch,
       }}>

@@ -164,14 +164,15 @@ model Subscription {
   owner    User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   plan     String @default("free")
   status   String @default("active")
+  // Not set by RuStore Pay (its webhook doesn't carry an expiration date) — kept only
+  // in case a future call to RuStore's purchase-lookup API wants to populate it for
+  // display. Unused by the current webhook handler.
   currentPeriodEnd DateTime? @map("current_period_end")
   // 7-day free trial from account creation — set once at sign-up, never client-writable.
   trialEndsAt       DateTime @map("trial_ends_at")
-  yookassaPaymentId String?  @map("yookassa_payment_id")
-  // Saved YooKassa payment method from the first payment (save_payment_method: true) —
-  // reused by the off-session recurring charge in jobs/renewSubscriptions.ts every
-  // billing period, so the owner isn't asked to re-enter their card each month.
-  yookassaPaymentMethodId String? @map("yookassa_payment_method_id")
+  // Latest RuStore purchaseId for this owner's subscription — for debugging/support
+  // lookups in RuStore Console, not used to drive any logic here.
+  rustorePurchaseId String?  @map("rustore_purchase_id")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 

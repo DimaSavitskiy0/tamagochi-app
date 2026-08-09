@@ -152,10 +152,11 @@ export const api = {
   addPetEvent: (input: Record<string, unknown>) => request<{ event: unknown }>('/pet-events', { method: 'POST', body: input }),
   deletePetEvent: (id: string) => request<void>(`/pet-events/${id}`, { method: 'DELETE' }),
 
+  // Subscription state is entirely driven by RuStore Pay's server webhook (see
+  // server/src/routes/payments.ts) — the client only ever reads it, never mutates it.
+  // The actual purchase/cancel/manage actions happen through the native RuStore Pay SDK
+  // (see lib/rustorePay.ts) or inside the RuStore app itself, not through this API.
   getSubscription: () => request<{ subscription: unknown }>('/subscription'),
-  createPayment: () => request<{ confirmationUrl: string; paymentId: string }>('/payments/create', { method: 'POST' }),
-  cancelSubscription: () => request<{ subscription: unknown }>('/subscription/cancel', { method: 'POST' }),
-  resumeSubscription: () => request<{ subscription: unknown }>('/subscription/resume', { method: 'POST' }),
 
   recordAppOpen: () => request<{ stats: unknown }>('/stats/app-open', { method: 'POST' }),
 };

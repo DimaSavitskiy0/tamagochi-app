@@ -11,14 +11,13 @@ export const env = {
   databaseUrl: required('DATABASE_URL'),
   jwtAccessSecret: required('JWT_ACCESS_SECRET'),
   jwtRefreshSecret: required('JWT_REFRESH_SECRET'),
-  // YooKassa + Anthropic are only needed for the payments/ai-tip routes — validated
+  // Anthropic + RuStore Pay are only needed for the ai-tip/payments routes — validated
   // lazily there instead of here, so the rest of the API still runs without them
   // configured (useful for local dev before those accounts/keys exist).
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
-  yookassaShopId: process.env.YOOKASSA_SHOP_ID ?? '',
-  yookassaSecretKey: process.env.YOOKASSA_SECRET_KEY ?? '',
-  yookassaProPriceRub: process.env.PRO_PLAN_PRICE_RUB ?? '199.00',
-  appReturnUrl: process.env.APP_RETURN_URL ?? 'https://example.com/payment-complete',
+  // AES-256 key (base64) RuStore Console hands you once when you connect the server
+  // notifications URL under Monetization → Server notifications. See lib/rustorePay.ts.
+  rustoreWebhookSecret: process.env.RUSTORE_WEBHOOK_SECRET ?? '',
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
   // SMTP is only needed for POST /auth/forgot-password — without it, the endpoint still
   // works (code is generated and stored) but no email actually goes out, same "optional,

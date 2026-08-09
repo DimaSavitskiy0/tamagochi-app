@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as WebBrowser from 'expo-web-browser';
 
+import { RUSTORE_PRO_PRODUCT_CODE } from '@/constants/rustore';
+import { useAuth } from '@/contexts/AuthProvider';
 import { api, isBackendConfigured } from '@/lib/api';
+import { isRustorePayAvailable, purchase, RuStoreUtils } from '@/lib/rustorePay';
 import type { Subscription } from '@/types/database';
 
 function addDays(date: Date, days: number): Date {
@@ -17,7 +19,6 @@ const DEFAULT_SUBSCRIPTION: Subscription = {
   status: 'active',
   current_period_end: null,
   trial_ends_at: addDays(new Date(), 7).toISOString(),
-  yookassa_payment_id: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -27,12 +28,11 @@ const FAST_POLL_MS = 3_000;
 const FAST_POLL_DURATION_MS = 2 * 60_000;
 
 export function useSubscription() {
+  const { ownerId } = useAuth();
   const [subscription, setSubscription] = useState<Subscription>(DEFAULT_SUBSCRIPTION);
   const [loading, setLoading] = useState(isBackendConfigured);
   const [startingCheckout, setStartingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [updatingSubscription, setUpdatingSubscription] = useState(false);
-  const [subscriptionActionError, setSubscriptionActionError] = useState<string | null>(null);
   const subscriptionRef = useRef(subscription);
   subscriptionRef.current = subscription;
 
@@ -55,9 +55,11 @@ export function useSubscription() {
       if (isMounted) setLoading(false);
     })();
 
-    // No realtime subscription server-side (see server/src/routes/payments.ts) — a
-    // lightweight background poll catches a payment confirmed from another device or a
-    // slow webhook, without needing a persistent connection for something this rare.
+    // No realtime push from the server — RuStore's webhook (server/src/routes/payments.ts)
+    // updates our DB, but the client only learns about it by polling. A lightweight
+    // background poll catches a purchase confirmed while the app was backgrounded (RuStore's
+    // own purchase sheet is a separate native screen, not something we navigate away for),
+    // without needing a persistent connection for something this rare.
     const interval = setInterval(refresh, BACKGROUND_POLL_MS);
     return () => {
       isMounted = false;
@@ -83,26 +85,38 @@ export function useSubscription() {
     }));
   }, []);
 
-  // Creates a real YooKassa payment via the server (which holds the secret key) and
-  // opens the hosted checkout page. Once the browser closes, a burst of fast polling
-  // picks up the payment as soon as the webhook confirms it server-side — no
-  // client-side "mark as paid".
+  // Starts a purchase through RuStore's native Pay SDK (see lib/rustorePay.ts) — no
+  // server round-trip to create anything first, unlike the old YooKassa redirect flow.
+  // orderId is set to the owner's own user id so the server webhook can map the
+  // resulting SUBSCRIPTION_EVENT back to this owner without a separate lookup. Once
+  // RuStore confirms the purchase, its webhook flips subscriptions.plan/status
+  // server-side — the fast poll below just picks that up as soon as it lands.
   const startCheckout = useCallback(async (): Promise<{ error: string | null }> => {
     if (!isBackendConfigured) {
       toggleMockPlan();
       return { error: null };
     }
+    if (!isRustorePayAvailable()) {
+      const message =
+        'Оплата пока недоступна в этой сборке (нужна сборка с подключённым RuStore Pay SDK — см. server/README.md).';
+      setCheckoutError(message);
+      return { error: message };
+    }
+    if (!ownerId) {
+      const message = 'Не удалось определить аккаунт для оплаты';
+      setCheckoutError(message);
+      return { error: message };
+    }
 
     setStartingCheckout(true);
     setCheckoutError(null);
     try {
-      const { confirmationUrl } = await api.createPayment();
-      if (!confirmationUrl) {
-        const message = 'Не удалось создать платёж. Попробуйте ещё раз.';
+      const result = await purchase({ productId: RUSTORE_PRO_PRODUCT_CODE, orderId: ownerId });
+      if ('errorCode' in result) {
+        const message = result.errorMessage ?? `Не удалось оформить подписку (${result.errorCode})`;
         setCheckoutError(message);
         return { error: message };
       }
-      await WebBrowser.openBrowserAsync(confirmationUrl);
 
       const deadline = Date.now() + FAST_POLL_DURATION_MS;
       const fastInterval = setInterval(async () => {
@@ -115,58 +129,28 @@ export function useSubscription() {
 
       return { error: null };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Не удалось создать платёж. Попробуйте ещё раз.';
+      const message = err instanceof Error ? err.message : 'Не удалось оформить подписку. Попробуйте ещё раз.';
       setCheckoutError(message);
       return { error: message };
     } finally {
       setStartingCheckout(false);
     }
-  }, [refresh, toggleMockPlan]);
+  }, [ownerId, refresh, toggleMockPlan]);
 
-  // Stops future auto-renewal (see server/src/jobs/renewSubscriptions.ts) but keeps Pro
-  // access until the paid period ends — never an immediate downgrade.
-  const cancelSubscription = useCallback(async (): Promise<{ error: string | null }> => {
-    if (!isBackendConfigured) {
-      toggleMockPlan();
-      return { error: null };
+  // RuStore — not our server — owns cancellation/auto-renewal (same model as Google
+  // Play/App Store subscriptions): the user manages it from inside the RuStore app
+  // itself. This just opens RuStore; there's nothing for our own API to mutate.
+  const openSubscriptionManagement = useCallback(async (): Promise<{ error: string | null }> => {
+    if (!isRustorePayAvailable()) {
+      return { error: 'Недоступно в этой сборке — откройте приложение RuStore вручную.' };
     }
-    setUpdatingSubscription(true);
-    setSubscriptionActionError(null);
     try {
-      const { subscription: updated } = await api.cancelSubscription();
-      setSubscription(updated as Subscription);
+      await RuStoreUtils.openRuStore();
       return { error: null };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Не удалось отменить подписку';
-      setSubscriptionActionError(message);
-      return { error: message };
-    } finally {
-      setUpdatingSubscription(false);
+      return { error: err instanceof Error ? err.message : 'Не удалось открыть RuStore' };
     }
-  }, [toggleMockPlan]);
-
-  // Undoes a cancellation made within the still-paid period — the server rejects this
-  // once the period has actually ended, at which point startCheckout is the only way
-  // back in.
-  const resumeSubscription = useCallback(async (): Promise<{ error: string | null }> => {
-    if (!isBackendConfigured) {
-      toggleMockPlan();
-      return { error: null };
-    }
-    setUpdatingSubscription(true);
-    setSubscriptionActionError(null);
-    try {
-      const { subscription: updated } = await api.resumeSubscription();
-      setSubscription(updated as Subscription);
-      return { error: null };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Не удалось возобновить подписку';
-      setSubscriptionActionError(message);
-      return { error: message };
-    } finally {
-      setUpdatingSubscription(false);
-    }
-  }, [toggleMockPlan]);
+  }, []);
 
   return {
     subscription,
@@ -178,9 +162,6 @@ export function useSubscription() {
     startCheckout,
     startingCheckout,
     checkoutError,
-    cancelSubscription,
-    resumeSubscription,
-    updatingSubscription,
-    subscriptionActionError,
+    openSubscriptionManagement,
   };
 }

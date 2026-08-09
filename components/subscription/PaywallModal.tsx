@@ -47,11 +47,11 @@ export function PaywallModal({ visible, starting, error, onCheckout, onSignOut }
           style={[styles.payButton, { backgroundColor: tint, opacity: starting ? 0.6 : 1 }]}
           disabled={starting}
           onPress={onCheckout}>
-          {starting ? <ActivityIndicator color="#fff" /> : <Text style={styles.payButtonLabel}>Оплатить через ЮKassa</Text>}
+          {starting ? <ActivityIndicator color="#fff" /> : <Text style={styles.payButtonLabel}>Оформить Pro</Text>}
         </Pressable>
 
         <Text style={styles.legalHint}>
-          Подписка продлевается автоматически, отменить можно в любой момент в профиле. Оплата — публичная{' '}
+          Подписка продлевается автоматически, управлять ей можно в приложении RuStore. Оплата — публичная{' '}
           <Text style={[styles.legalLink, { color: tint }]} onPress={() => router.push('/legal/offer')}>
             оферта
           </Text>

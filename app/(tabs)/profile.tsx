@@ -35,14 +35,12 @@ export default function ProfileScreen() {
     startCheckout,
     startingCheckout,
     checkoutError,
-    cancelSubscription,
-    resumeSubscription,
-    updatingSubscription,
-    subscriptionActionError,
+    openSubscriptionManagement,
   } = useSubscription();
   const [editingOwner, setEditingOwner] = useState(false);
   const [editingPet, setEditingPet] = useState(false);
-  const isCanceled = subscription.status === 'canceled';
+  const [manageError, setManageError] = useState<string | null>(null);
+  const isPastDue = subscription.status === 'past_due';
 
   const trialDaysLeft = Math.max(
     0,
@@ -121,32 +119,26 @@ export default function ProfileScreen() {
               <Text style={styles.cardTitle}>{isPro ? 'Pro' : 'Бесплатный план'}</Text>
               <Text style={styles.cardSubtitle} numberOfLines={1}>
                 {isPro
-                  ? subscription.current_period_end
-                    ? isCanceled
-                      ? `Отменена, доступ до ${new Date(subscription.current_period_end).toLocaleDateString('ru-RU')}`
-                      : `Автопродление ${PRO_PLAN_PRICE_LABEL} · до ${new Date(subscription.current_period_end).toLocaleDateString('ru-RU')}`
-                    : 'Активна'
-                  : trialDaysLeft > 0
-                    ? `Бесплатно ещё ${trialDaysLeft} ${pluralizeDays(trialDaysLeft)}, далее ${PRO_PLAN_PRICE_LABEL}`
-                    : `Пробный период закончился · ${PRO_PLAN_PRICE_LABEL}`}
+                  ? 'Активна'
+                  : isPastDue
+                    ? 'Проблема с оплатой — RuStore повторяет попытку списания'
+                    : trialDaysLeft > 0
+                      ? `Бесплатно ещё ${trialDaysLeft} ${pluralizeDays(trialDaysLeft)}, далее ${PRO_PLAN_PRICE_LABEL}`
+                      : `Пробный период закончился · ${PRO_PLAN_PRICE_LABEL}`}
               </Text>
             </View>
           </View>
 
           {isPro && (
             <View style={styles.subscriptionActions}>
-              {subscriptionActionError ? <Text style={styles.checkoutErrorText}>{subscriptionActionError}</Text> : null}
+              {manageError ? <Text style={styles.checkoutErrorText}>{manageError}</Text> : null}
               <Pressable
-                style={[styles.secondaryButton, { borderColor: tint, opacity: updatingSubscription ? 0.6 : 1 }]}
-                disabled={updatingSubscription}
-                onPress={isCanceled ? resumeSubscription : cancelSubscription}>
-                {updatingSubscription ? (
-                  <ActivityIndicator color={tint} />
-                ) : (
-                  <Text style={[styles.secondaryButtonLabel, { color: tint }]}>
-                    {isCanceled ? 'Возобновить подписку' : 'Отменить подписку'}
-                  </Text>
-                )}
+                style={[styles.secondaryButton, { borderColor: tint }]}
+                onPress={async () => {
+                  const { error } = await openSubscriptionManagement();
+                  setManageError(error);
+                }}>
+                <Text style={[styles.secondaryButtonLabel, { color: tint }]}>Управлять подпиской в RuStore</Text>
               </Pressable>
             </View>
           )}
@@ -170,14 +162,12 @@ export default function ProfileScreen() {
                 {startingCheckout ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.upgradeButtonLabel}>
-                    {isBackendConfigured ? 'Оплатить через ЮKassa' : 'Оформить Pro'}
-                  </Text>
+                  <Text style={styles.upgradeButtonLabel}>Оформить Pro</Text>
                 )}
               </Pressable>
               {isBackendConfigured && (
                 <Text style={styles.legalHint} numberOfLines={2}>
-                  Автопродление {PRO_PLAN_PRICE_LABEL}, отменить можно в любой момент. Оплата —{' '}
+                  Автопродление {PRO_PLAN_PRICE_LABEL}, управлять можно в приложении RuStore. Оплата —{' '}
                   <Text style={[styles.legalLink, { color: tint }]} onPress={() => router.push('/legal/offer')}>
                     публичная оферта
                   </Text>

@@ -78,7 +78,6 @@ export function serializeSubscription(sub: Subscription) {
     status: sub.status,
     current_period_end: sub.currentPeriodEnd ? sub.currentPeriodEnd.toISOString() : null,
     trial_ends_at: sub.trialEndsAt.toISOString(),
-    yookassa_payment_id: sub.yookassaPaymentId,
     created_at: sub.createdAt.toISOString(),
     updated_at: sub.updatedAt.toISOString(),
   };
