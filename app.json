@@ -48,7 +48,8 @@
           "color": "#7c4dff"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/withRuStorePay"
     ],
     "experiments": {
       "typedRoutes": true
