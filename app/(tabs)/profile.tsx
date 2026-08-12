@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet } from 'react-native';
@@ -26,7 +27,7 @@ function pluralizeDays(count: number): string {
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const tint = Colors[colorScheme].tint;
-  const { signOut, updateProfile, ownerProfile } = useAuth();
+  const { signOut, updateProfile, ownerProfile, ownerId } = useAuth();
   const { pet, updatePet } = usePet();
   const {
     subscription,
@@ -40,7 +41,16 @@ export default function ProfileScreen() {
   const [editingOwner, setEditingOwner] = useState(false);
   const [editingPet, setEditingPet] = useState(false);
   const [manageError, setManageError] = useState<string | null>(null);
+  // Briefly shows "Скопировано" on whichever field was just copied (id or support
+  // email), instead of a toast library for a single one-off confirmation.
+  const [copiedField, setCopiedField] = useState<'id' | 'email' | null>(null);
   const isPastDue = subscription.status === 'past_due';
+
+  const copyToClipboard = async (text: string, field: 'id' | 'email') => {
+    await Clipboard.setStringAsync(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField((current) => (current === field ? null : current)), 1500);
+  };
 
   const trialDaysLeft = Math.max(
     0,
@@ -177,17 +187,47 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          <Pressable style={styles.card} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
-            <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
-              <Ionicons name="mail" size={16} color={tint} />
+          {ownerId ? (
+            <View style={styles.card}>
+              <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
+                <Ionicons name="finger-print-outline" size={17} color={tint} />
+              </View>
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitle}>ID пользователя</Text>
+                <Text style={styles.cardSubtitle} numberOfLines={1}>
+                  {copiedField === 'id' ? 'Скопировано' : ownerId}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => copyToClipboard(ownerId, 'id')}
+                hitSlop={10}
+                accessibilityLabel="Скопировать ID пользователя">
+                <Ionicons name={copiedField === 'id' ? 'checkmark' : 'copy-outline'} size={17} color={tint} />
+              </Pressable>
             </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>Служба поддержки</Text>
-              <Text style={styles.cardSubtitle} numberOfLines={1}>
-                {SUPPORT_EMAIL}
-              </Text>
-            </View>
-          </Pressable>
+          ) : null}
+
+          <View style={styles.card}>
+            <Pressable
+              style={styles.cardPressableArea}
+              onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
+              <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
+                <Ionicons name="mail" size={16} color={tint} />
+              </View>
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitle}>Служба поддержки</Text>
+                <Text style={styles.cardSubtitle} numberOfLines={1}>
+                  {copiedField === 'email' ? 'Скопировано' : SUPPORT_EMAIL}
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => copyToClipboard(SUPPORT_EMAIL, 'email')}
+              hitSlop={10}
+              accessibilityLabel="Скопировать email поддержки">
+              <Ionicons name={copiedField === 'email' ? 'checkmark' : 'copy-outline'} size={17} color={tint} />
+            </Pressable>
+          </View>
         </View>
 
         <Pressable style={styles.signOutButton} onPress={signOut}>
@@ -260,6 +300,11 @@ const styles = StyleSheet.create({
     padding: 9,
     borderRadius: 13,
     backgroundColor: 'rgba(120,120,120,0.08)',
+  },
+  cardPressableArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   iconWrap: {
     width: 32,

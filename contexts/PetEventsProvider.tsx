@@ -48,7 +48,7 @@ type PetEventsContextValue = {
 const PetEventsContext = createContext<PetEventsContextValue | undefined>(undefined);
 
 export function PetEventsProvider({ children }: { children: ReactNode }) {
-  const { pet } = usePet();
+  const { pet, loading: petLoading } = usePet();
   const petId = pet.id;
   const [events, setEvents] = useState<PetEvent[]>([]);
   const [loading, setLoading] = useState(isBackendConfigured);
@@ -64,14 +64,20 @@ export function PetEventsProvider({ children }: { children: ReactNode }) {
     try {
       const { events: fetched } = await api.getPetEvents(petId);
       setEvents((fetched as PetEvent[]).slice().sort((a, b) => (a.event_date < b.event_date ? -1 : 1)));
+    } catch {
+      // A transient failure isn't worth crashing over — same "fail quietly" pattern as
+      // the other providers.
     } finally {
       setLoading(false);
     }
   }, [petId]);
 
   useEffect(() => {
+    // See the matching comment in DiaryProvider — pet.id is still the offline
+    // placeholder until PetProvider's own fetch resolves.
+    if (isBackendConfigured && petLoading) return;
     load();
-  }, [load]);
+  }, [load, petLoading]);
 
   const addEvent = useCallback(
     async (input: { title: string; eventDate: Date; notes?: string }) => {

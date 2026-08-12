@@ -80,7 +80,7 @@ type RemindersContextValue = {
 const RemindersContext = createContext<RemindersContextValue | undefined>(undefined);
 
 export function RemindersProvider({ children }: { children: ReactNode }) {
-  const { pet } = usePet();
+  const { pet, loading: petLoading } = usePet();
   const petId = pet.id;
   const { entries: diaryEntries } = useDiary();
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -98,14 +98,21 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
     try {
       const { reminders: fetched } = await api.getReminders(petId);
       setReminders((fetched as Reminder[]).slice().sort((a, b) => (a.due_date < b.due_date ? -1 : 1)));
+    } catch {
+      // A transient failure isn't worth crashing over — the reminders list just stays
+      // whatever it was (empty on first load), same "fail quietly" pattern as the
+      // other providers.
     } finally {
       setLoading(false);
     }
   }, [petId]);
 
   useEffect(() => {
+    // See the matching comment in DiaryProvider — pet.id is still the offline
+    // placeholder until PetProvider's own fetch resolves.
+    if (isBackendConfigured && petLoading) return;
     load();
-  }, [load]);
+  }, [load, petLoading]);
 
   // Reconcile derived due dates against stored reminders: create the ones that don't
   // exist yet, and nudge an existing incomplete reminder's due_date forward if new

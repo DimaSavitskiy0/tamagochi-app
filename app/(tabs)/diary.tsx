@@ -113,7 +113,7 @@ export default function DiaryScreen() {
   const tint = Colors[colorScheme].tint;
   const { pet } = usePet();
   const { entries, loading, addEntry } = useDiary();
-  const { snapshots } = usePetStatHistory(pet.id);
+  const { snapshots } = usePetStatHistory();
   const [modalVisible, setModalVisible] = useState(false);
 
   const sections = useMemo(() => groupEntriesByDate(entries), [entries]);

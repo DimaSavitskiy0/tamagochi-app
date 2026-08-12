@@ -102,7 +102,7 @@ type DiaryContextValue = {
 const DiaryContext = createContext<DiaryContextValue | undefined>(undefined);
 
 export function DiaryProvider({ children }: { children: ReactNode }) {
-  const { pet } = usePet();
+  const { pet, loading: petLoading } = usePet();
   const petId = pet.id;
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [loading, setLoading] = useState(isBackendConfigured);
@@ -128,8 +128,13 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   }, [petId]);
 
   useEffect(() => {
+    // PetProvider's own async GET /pets/mine hasn't resolved yet — pet.id is still the
+    // offline MOCK_PET placeholder ('local-pet'), not a real id the server knows about.
+    // Fetching now would 404 ("Питомец не найден") and get silently overwritten a moment
+    // later anyway once the real pet loads and this effect re-runs.
+    if (isBackendConfigured && petLoading) return;
     fetchEntries();
-  }, [fetchEntries]);
+  }, [fetchEntries, petLoading]);
 
   const addEntry = useCallback(
     async (input: NewDiaryEntry) => {

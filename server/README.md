@@ -55,25 +55,32 @@ reverse-proxy, обслуживает `navigatorfamily.ru`). Бэкенд Лап
 - Family Navigator не тронут: свой процесс, своя база, свой docker-network — проверено
   (`docker ps` показывает все 3 его контейнера с прежним аптаймом).
 
-**Что осталось, когда появится домен:**
+**Домен `lapgo.ru` куплен и подключён** (DNS A-запись `@` → `62.113.44.88`). Caddy
+(`family-navigator-backend-caddy-1`) проксирует его на API так же, как
+`navigatorfamily.ru`:
 
-1. Купить домен (например в том же личном кабинете Timeweb Cloud → «Домены» →
-   «Создать», либо у любого регистратора) и направить DNS A-запись `@`/`www` на
-   `62.113.44.88`.
-2. В `/opt/family-navigator-backend/Caddyfile` **добавить новый блок** (не трогая
-   существующий блок `navigatorfamily.ru {...}`), например:
-   ```caddyfile
-   ваш-домен.ru {
-       reverse_proxy 127.0.0.1:3001
-   }
-   ```
-   Caddy сам выпустит и продлит SSL-сертификат для нового домена — отдельный Caddy не
-   нужен, порты 80/443 уже заняты существующим контейнером `family-navigator-backend-caddy-1`.
-   После правки — `docker compose -f /opt/family-navigator-backend/docker-compose.prod.yml restart caddy`.
-3. Готовый `https://ваш-домен.ru` — это и есть `EXPO_PUBLIC_API_URL` для мобильного
-   приложения.
+```caddyfile
+lapgo.ru {
+    reverse_proxy tamagochi-backend-api-1:3000
+}
+```
 
-Проверить работу до появления домена можно прямо по SSH:
+Важный нюанс, в отличие от `navigatorfamily.ru` (тот проксируется на `api:3000` —
+имя сервиса внутри своего же docker-compose проекта): `tamagochi-backend` — **отдельный**
+docker-compose проект со своей сетью, поэтому по имени сервиса `api` Caddy его не
+найдёт. Сначала нужно подключить Caddy к сети `tamagochi-backend` и указывать в
+конфиге полное имя контейнера, а не имя сервиса:
+```bash
+docker network connect tamagochi-backend_default family-navigator-backend-caddy-1
+```
+После этого — правка `Caddyfile` (см. выше) и
+`docker compose -f /opt/family-navigator-backend/docker-compose.prod.yml restart caddy`.
+Caddy сам выпустит и продлит SSL-сертификат — отдельный Caddy не нужен, порты 80/443
+уже заняты существующим контейнером.
+
+`https://lapgo.ru` — это и есть `EXPO_PUBLIC_API_URL` для мобильного приложения.
+
+Проверить работу можно и без домена, прямо по SSH:
 ```bash
 ssh root@62.113.44.88 curl -s http://127.0.0.1:3001/health
 ```

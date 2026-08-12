@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { usePet } from '@/contexts/PetProvider';
 import { api, isBackendConfigured } from '@/lib/api';
 import type { PetStatSnapshot } from '@/types/database';
 
@@ -28,7 +29,9 @@ function buildMockHistory(petId: string): PetStatSnapshot[] {
   }));
 }
 
-export function usePetStatHistory(petId: string) {
+export function usePetStatHistory() {
+  const { pet, loading: petLoading } = usePet();
+  const petId = pet.id;
   const [snapshots, setSnapshots] = useState<PetStatSnapshot[]>([]);
   const [loading, setLoading] = useState(isBackendConfigured);
 
@@ -39,12 +42,20 @@ export function usePetStatHistory(petId: string) {
       return;
     }
 
+    // PetProvider's own GET /pets/mine hasn't resolved yet — pet.id is still the
+    // offline MOCK_PET placeholder, not a real id the server knows about. Fetching now
+    // would 404 ("Питомец не найден") — see the matching comment in DiaryProvider.
+    if (petLoading) return;
+
     let isMounted = true;
 
     (async () => {
       try {
         const { snapshots: fetched } = await api.getPetStatSnapshots(petId);
         if (isMounted) setSnapshots(fetched as PetStatSnapshot[]);
+      } catch {
+        // A transient failure isn't worth crashing over — same "fail quietly" pattern
+        // as the other pet-scoped data providers.
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -53,7 +64,7 @@ export function usePetStatHistory(petId: string) {
     return () => {
       isMounted = false;
     };
-  }, [petId]);
+  }, [petId, petLoading]);
 
   return { snapshots, loading };
 }
