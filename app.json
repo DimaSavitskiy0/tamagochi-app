@@ -49,7 +49,12 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "./plugins/withRuStorePay"
+      [
+        "./plugins/withRuStorePay",
+        {
+          "consoleAppId": "2063745190"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

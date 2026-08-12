@@ -14,8 +14,10 @@ const {
 // silently vanish on the next build). See lib/rustorePay.ts (JS side) and
 // server/README.md §3 (server side + RuStore Console setup) for the rest of the story.
 //
-// [ЧЕРНОВИК] CONSOLE_APPLICATION_ID stays a placeholder until the app is uploaded to
-// RuStore Console — see strings.xml mod below.
+// consoleAppId: pass via app.json plugin config, e.g.
+//   ["./plugins/withRuStorePay", { "consoleAppId": "2063745190" }]
+// — the numeric id from the app's RuStore Console URL
+// (console.rustore.ru/apps/<id>). Falls back to a placeholder if omitted.
 
 const RUSTORE_MAVEN_URL = 'https://nexus-external.vkteam.ru/repository/maven-rustore-exposed/';
 const RUSTORE_PAY_DEPENDENCY = 'ru.rustore.sdk-wrapper.react-native:pay:10.3.1';
@@ -132,23 +134,23 @@ function withRuStorePayMainActivity(config) {
   });
 }
 
-function withRuStorePayStrings(config) {
+function withRuStorePayStrings(config, consoleAppId) {
   return withStringsXml(config, (config) => {
-    const strings = config.modResults.resources.string || [];
-    if (!strings.some((s) => s.$.name === 'CONSOLE_APPLICATION_ID')) {
-      strings.push({ $: { name: 'CONSOLE_APPLICATION_ID' }, _: CONSOLE_APP_ID_PLACEHOLDER });
-    }
+    const strings = (config.modResults.resources.string || []).filter(
+      (s) => s.$.name !== 'CONSOLE_APPLICATION_ID'
+    );
+    strings.push({ $: { name: 'CONSOLE_APPLICATION_ID' }, _: consoleAppId || CONSOLE_APP_ID_PLACEHOLDER });
     config.modResults.resources.string = strings;
     return config;
   });
 }
 
-module.exports = function withRuStorePay(config) {
+module.exports = function withRuStorePay(config, { consoleAppId } = {}) {
   config = withRuStorePayProjectGradle(config);
   config = withRuStorePayAppGradle(config);
   config = withRuStorePayManifest(config);
   config = withRuStorePayMainApplication(config);
   config = withRuStorePayMainActivity(config);
-  config = withRuStorePayStrings(config);
+  config = withRuStorePayStrings(config, consoleAppId);
   return config;
 };
