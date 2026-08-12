@@ -12,7 +12,7 @@ import { PRO_BENEFITS, PRO_PLAN_PRICE_LABEL } from '@/constants/proBenefits';
 import { SUPPORT_EMAIL } from '@/constants/support';
 import { useAuth } from '@/contexts/AuthProvider';
 import { usePet } from '@/hooks/usePet';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/contexts/SubscriptionProvider';
 import { isBackendConfigured } from '@/lib/api';
 
 function pluralizeDays(count: number): string {

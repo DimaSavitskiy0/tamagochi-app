@@ -51,7 +51,7 @@ type AuthContextValue = {
   hasOwnerProfile: boolean;
   /** Real backend user id — only set when isBackendConfigured, null in offline/guest mode
    * (nothing to purchase there). Used as the RuStore Pay `orderId` when starting a
-   * purchase (see hooks/useSubscription.ts), so the webhook can map the event back to
+   * purchase (see contexts/SubscriptionProvider.tsx), so the webhook can map the event back to
    * this owner's subscription row without a separate lookup step. */
   ownerId: string | null;
   /** True right after an offline "Войти" — an existing demo account has nothing new to

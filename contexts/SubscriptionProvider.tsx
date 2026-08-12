@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { RUSTORE_PRO_PRODUCT_CODE } from '@/constants/rustore';
 import { useAuth } from '@/contexts/AuthProvider';
 import { api, isBackendConfigured } from '@/lib/api';
 import { isRustorePayAvailable, purchase, RuStoreUtils } from '@/lib/rustorePay';
 import type { Subscription } from '@/types/database';
+
+// A Context, not a plain hook, on purpose — both app/(tabs)/_layout.tsx (PaywallGate)
+// and app/(tabs)/profile.tsx read subscription state. A plain hook would give each call
+// site its own independent poll loop (two GET /subscription every 30s instead of one)
+// and its own independent fast-poll-after-checkout timer, with no way for one to see
+// the other's state. This mirrors the PetProvider/AuthProvider pattern already used
+// elsewhere in the app.
 
 function addDays(date: Date, days: number): Date {
   const next = new Date(date);
@@ -27,7 +34,22 @@ const BACKGROUND_POLL_MS = 30_000;
 const FAST_POLL_MS = 3_000;
 const FAST_POLL_DURATION_MS = 2 * 60_000;
 
-export function useSubscription() {
+type SubscriptionContextValue = {
+  subscription: Subscription;
+  isPro: boolean;
+  isTrialExpired: boolean;
+  isLocked: boolean;
+  loading: boolean;
+  toggleMockPlan: () => void;
+  startCheckout: () => Promise<{ error: string | null }>;
+  startingCheckout: boolean;
+  checkoutError: string | null;
+  openSubscriptionManagement: () => Promise<{ error: string | null }>;
+};
+
+const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
+
+export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { ownerId } = useAuth();
   const [subscription, setSubscription] = useState<Subscription>(DEFAULT_SUBSCRIPTION);
   const [loading, setLoading] = useState(isBackendConfigured);
@@ -35,6 +57,10 @@ export function useSubscription() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const subscriptionRef = useRef(subscription);
   subscriptionRef.current = subscription;
+  // Tracks the fast-poll-after-checkout interval so it can be torn down if this
+  // provider unmounts (sign-out, session change) mid-poll — previously (as a plain
+  // hook) this interval had no cleanup path at all and would keep firing after unmount.
+  const fastIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
     if (!isBackendConfigured) return;
@@ -64,6 +90,7 @@ export function useSubscription() {
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (fastIntervalRef.current) clearInterval(fastIntervalRef.current);
     };
   }, [refresh]);
 
@@ -118,10 +145,12 @@ export function useSubscription() {
         return { error: message };
       }
 
+      if (fastIntervalRef.current) clearInterval(fastIntervalRef.current);
       const deadline = Date.now() + FAST_POLL_DURATION_MS;
-      const fastInterval = setInterval(async () => {
+      fastIntervalRef.current = setInterval(async () => {
         if (subscriptionRef.current.plan === 'pro' || Date.now() > deadline) {
-          clearInterval(fastInterval);
+          if (fastIntervalRef.current) clearInterval(fastIntervalRef.current);
+          fastIntervalRef.current = null;
           return;
         }
         await refresh();
@@ -152,16 +181,27 @@ export function useSubscription() {
     }
   }, []);
 
-  return {
-    subscription,
-    isPro,
-    isTrialExpired,
-    isLocked,
-    loading,
-    toggleMockPlan,
-    startCheckout,
-    startingCheckout,
-    checkoutError,
-    openSubscriptionManagement,
-  };
+  return (
+    <SubscriptionContext.Provider
+      value={{
+        subscription,
+        isPro,
+        isTrialExpired,
+        isLocked,
+        loading,
+        toggleMockPlan,
+        startCheckout,
+        startingCheckout,
+        checkoutError,
+        openSubscriptionManagement,
+      }}>
+      {children}
+    </SubscriptionContext.Provider>
+  );
+}
+
+export function useSubscription(): SubscriptionContextValue {
+  const ctx = useContext(SubscriptionContext);
+  if (!ctx) throw new Error('useSubscription must be used within SubscriptionProvider');
+  return ctx;
 }

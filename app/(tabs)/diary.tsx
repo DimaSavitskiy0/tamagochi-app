@@ -112,7 +112,7 @@ export default function DiaryScreen() {
   const colorScheme = useColorScheme();
   const tint = Colors[colorScheme].tint;
   const { pet } = usePet();
-  const { entries, loading, addEntry } = useDiary(pet.id);
+  const { entries, loading, addEntry } = useDiary();
   const { snapshots } = usePetStatHistory(pet.id);
   const [modalVisible, setModalVisible] = useState(false);
 

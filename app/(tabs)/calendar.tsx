@@ -28,9 +28,9 @@ export default function CalendarScreen() {
   const colorScheme = useColorScheme();
   const tint = Colors[colorScheme].tint;
   const { pet } = usePet();
-  const { entries } = useDiary(pet.id);
-  const { upcoming, markCompleted } = useReminders(pet.id, entries);
-  const { events, addEvent, deleteEvent } = usePetEvents(pet.id);
+  const { entries } = useDiary();
+  const { upcoming, markCompleted } = useReminders();
+  const { events, addEvent, deleteEvent } = usePetEvents();
 
   const today = useMemo(() => new Date(), []);
   const [selectedDate, setSelectedDate] = useState(today);

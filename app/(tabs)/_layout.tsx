@@ -8,9 +8,12 @@ import { PetOnboardingModal } from '@/components/pet/PetOnboardingModal';
 import { OwnerOnboardingModal } from '@/components/profile/OwnerOnboardingModal';
 import { PaywallModal } from '@/components/subscription/PaywallModal';
 import { useAuth } from '@/contexts/AuthProvider';
+import { DiaryProvider } from '@/contexts/DiaryProvider';
 import { PetProvider } from '@/contexts/PetProvider';
+import { PetEventsProvider } from '@/contexts/PetEventsProvider';
+import { RemindersProvider } from '@/contexts/RemindersProvider';
+import { SubscriptionProvider, useSubscription } from '@/contexts/SubscriptionProvider';
 import { usePet } from '@/hooks/usePet';
-import { useSubscription } from '@/hooks/useSubscription';
 import { requestNotificationPermissions } from '@/lib/notifications';
 
 export const unstable_settings = {
@@ -32,9 +35,17 @@ export default function TabLayout() {
     // on every offline sign-out/sign-in/sign-up, instead of silently reusing whatever pet
     // data the previous local session left behind.
     <PetProvider key={sessionEpoch}>
-      <TabsNavigator colorScheme={colorScheme} />
-      <OnboardingGate />
-      <PaywallGate />
+      <DiaryProvider>
+        <RemindersProvider>
+          <PetEventsProvider>
+            <SubscriptionProvider key={sessionEpoch}>
+              <TabsNavigator colorScheme={colorScheme} />
+              <OnboardingGate />
+              <PaywallGate />
+            </SubscriptionProvider>
+          </PetEventsProvider>
+        </RemindersProvider>
+      </DiaryProvider>
     </PetProvider>
   );
 }

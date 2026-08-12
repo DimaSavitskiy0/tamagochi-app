@@ -34,9 +34,9 @@ const STAT_BY_ENTRY_TYPE: Partial<Record<DiaryEntryType, { key: 'hunger' | 'mood
 
 export default function PetScreen() {
   const { pet, updatePet, adjustStat } = usePet();
-  const { entries, addEntry } = useDiary(pet.id);
-  const { reminders, upcoming, markCompleted, createManualReminder } = useReminders(pet.id, entries);
-  const { events } = usePetEvents(pet.id);
+  const { entries, addEntry } = useDiary();
+  const { reminders, upcoming, markCompleted, createManualReminder } = useReminders();
+  const { events } = usePetEvents();
   const { stats } = useUserStats();
   const [activeEntryType, setActiveEntryType] = useState<DiaryEntryType | null>(null);
   const [remindersVisible, setRemindersVisible] = useState(false);
