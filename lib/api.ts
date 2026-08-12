@@ -129,6 +129,8 @@ export const api = {
   me: () => request<{ user: ApiUser }>('/auth/me'),
   updateMe: (profile: { firstName: string; lastName: string; phone: string; email: string }) =>
     request<{ user: ApiUser }>('/auth/me', { method: 'PATCH', body: profile }),
+  updatePushToken: (token: string | null) =>
+    request<void>('/auth/push-token', { method: 'PATCH', body: { token } }),
 
   getMyPet: () => request<{ pet: unknown }>('/pets/mine'),
   patchPet: (id: string, patch: Record<string, unknown>) =>

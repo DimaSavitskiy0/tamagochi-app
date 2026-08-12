@@ -28,6 +28,12 @@ model User {
   // or once expired — only ever the sha256 hash, mirroring passwordHash/RefreshToken.
   resetCodeHash      String?   @map("reset_code_hash")
   resetCodeExpiresAt DateTime? @map("reset_code_expires_at")
+  // RuStore Push SDK token (see lib/rustorePushNotifications.ts) — set by
+  // PATCH /auth/push-token once the client obtains one. Null until a real native
+  // build with RuStore installed actually registers (never happens in Expo Go/web).
+  // Sending a push still requires calling RuStore's own server-side Send API — this
+  // column only stores where to send it, nothing sends anything yet.
+  rustorePushToken String? @map("rustore_push_token")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

@@ -50,6 +50,13 @@ const resetPasswordSchema = z.object({
   newPassword: z.string().min(6),
 });
 
+const pushTokenSchema = z.object({
+  // Null clears the token (e.g. on sign-out from a device) — RuStore's own
+  // RuStorePushClient.deleteToken() invalidates it client-side, this just stops us
+  // sending to a token that no longer works.
+  token: z.string().min(1).nullable(),
+});
+
 function userToJson(user: { id: string; email: string; firstName: string | null; lastName: string | null; phone: string | null }) {
   return { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone };
 }
@@ -218,5 +225,20 @@ authRouter.patch(
 
     const user = await prisma.user.update({ where: { id: req.userId }, data: { firstName, lastName, phone, email } });
     res.json({ user: userToJson(user) });
+  })
+);
+
+// Called by the client once it obtains a RuStore Push token (see
+// lib/rustorePushNotifications.ts) — no-op if RuStore Pay/Push isn't set up on this
+// build, in which case the client never calls this at all. Storing the token doesn't
+// send anything by itself — actually sending a push still needs a separate call to
+// RuStore's own server-side Send API, not implemented yet.
+authRouter.patch(
+  '/push-token',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { token } = pushTokenSchema.parse(req.body);
+    await prisma.user.update({ where: { id: req.userId }, data: { rustorePushToken: token } });
+    res.status(204).send();
   })
 );

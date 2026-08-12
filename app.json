@@ -54,6 +54,12 @@
         {
           "consoleAppId": "2063745190"
         }
+      ],
+      [
+        "./plugins/withRuStorePush",
+        {
+          "projectId": "REPLACE_WITH_RUSTORE_PUSH_PROJECT_ID"
+        }
       ]
     ],
     "experiments": {

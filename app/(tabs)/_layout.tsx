@@ -14,7 +14,9 @@ import { PetEventsProvider } from '@/contexts/PetEventsProvider';
 import { RemindersProvider } from '@/contexts/RemindersProvider';
 import { SubscriptionProvider, useSubscription } from '@/contexts/SubscriptionProvider';
 import { usePet } from '@/hooks/usePet';
+import { api, isBackendConfigured } from '@/lib/api';
 import { requestNotificationPermissions } from '@/lib/notifications';
+import { getRustorePushToken, isRustorePushAvailable, requestPushPermission } from '@/lib/rustorePushNotifications';
 
 export const unstable_settings = {
   initialRouteName: 'pet',
@@ -28,6 +30,27 @@ export default function TabLayout() {
   // actually notify later instead of silently never scheduling anything.
   useEffect(() => {
     requestNotificationPermissions();
+  }, []);
+
+  // RuStore Push SDK registration — a no-op everywhere except a real native Android
+  // build with RuStore Console set up (see lib/rustorePushNotifications.ts). Registering
+  // the token doesn't make anything arrive yet — the server has nowhere to send a push
+  // from until RuStore's server-side Send API is wired up separately.
+  useEffect(() => {
+    if (!isBackendConfigured || !isRustorePushAvailable()) return;
+    (async () => {
+      const granted = await requestPushPermission();
+      if (!granted) return;
+      const token = await getRustorePushToken();
+      if (token) {
+        try {
+          await api.updatePushToken(token);
+        } catch {
+          // Not worth surfacing to the owner — push is a nice-to-have, and the next
+          // app open retries anyway.
+        }
+      }
+    })();
   }, []);
 
   return (
