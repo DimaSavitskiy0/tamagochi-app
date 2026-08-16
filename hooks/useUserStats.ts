@@ -34,6 +34,9 @@ export function useUserStats() {
       try {
         const { stats: recorded } = await api.recordAppOpen();
         if (isMounted) setStats(recorded as UserStats);
+      } catch {
+        // Just activity/streak tracking — no connectivity shouldn't be visible to the
+        // user over this, the stats simply stay whatever they were.
       } finally {
         if (isMounted) setLoading(false);
       }

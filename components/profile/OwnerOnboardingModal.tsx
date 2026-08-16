@@ -20,18 +20,26 @@ export function OwnerOnboardingModal({ visible, onSubmit }: OwnerOnboardingModal
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canSave = firstName.trim().length > 0 && lastName.trim().length > 0 && phone.trim().length >= 5 && !saving;
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
+    setErrorMessage(null);
     try {
       await onSubmit({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone.trim(),
       });
+    } catch (err) {
+      // Unlike the pet-onboarding step (which has a meaningful offline fallback via
+      // PetProvider.updatePet), there's no local account to fall back to here — the
+      // profile genuinely has to reach the server. Surface it instead of throwing an
+      // unhandled rejection (e.g. no connectivity, airplane mode).
+      setErrorMessage(err instanceof Error ? err.message : 'Не удалось сохранить, попробуйте ещё раз');
     } finally {
       setSaving(false);
     }
@@ -72,6 +80,8 @@ export function OwnerOnboardingModal({ visible, onSubmit }: OwnerOnboardingModal
             autoComplete="tel"
             style={[styles.input, { borderColor, color: textColor }]}
           />
+
+          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
           <Pressable
             style={[styles.saveButton, { backgroundColor: tint, opacity: canSave ? 1 : 0.5 }]}
@@ -118,6 +128,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     marginBottom: 16,
+  },
+  errorText: {
+    color: '#e5484d',
+    fontSize: 13,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   saveButton: {
     borderRadius: 12,

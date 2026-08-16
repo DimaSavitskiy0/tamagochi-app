@@ -129,13 +129,20 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
 
         if (!openReminder) {
           if (isBackendConfigured) {
-            const { reminder } = await api.addReminder({
-              pet_id: petId,
-              type: item.type,
-              due_date: item.due_date,
-              source: 'auto',
-            });
-            setReminders((prev) => [...prev, reminder as Reminder]);
+            try {
+              const { reminder } = await api.addReminder({
+                pet_id: petId,
+                type: item.type,
+                due_date: item.due_date,
+                source: 'auto',
+              });
+              setReminders((prev) => [...prev, reminder as Reminder]);
+            } catch (err) {
+              // This effect runs automatically (no user action, no button to catch a
+              // rejection for) whenever diary entries change — without a catch here, a
+              // network failure would surface as an unhandled rejection out of nowhere.
+              console.warn('[RemindersProvider] auto-create reminder failed, will retry next sync:', err);
+            }
           } else {
             const created: Reminder = {
               id: `local-reminder-${item.type}-${Date.now()}`,
@@ -157,7 +164,11 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
 
         if (openReminder.due_date !== item.due_date) {
           if (isBackendConfigured) {
-            await api.patchReminder(openReminder.id, { due_date: item.due_date });
+            try {
+              await api.patchReminder(openReminder.id, { due_date: item.due_date });
+            } catch (err) {
+              console.warn('[RemindersProvider] auto-nudge reminder failed, will retry next sync:', err);
+            }
           }
           setReminders((prev) =>
             prev.map((r) => (r.id === openReminder.id ? { ...r, due_date: item.due_date } : r))
@@ -186,9 +197,28 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
         return created;
       }
 
-      const { reminder } = await api.addReminder({ pet_id: petId, type, due_date, source: 'manual' });
-      setReminders((prev) => [...prev, reminder as Reminder]);
-      return reminder as Reminder;
+      try {
+        const { reminder } = await api.addReminder({ pet_id: petId, type, due_date, source: 'manual' });
+        setReminders((prev) => [...prev, reminder as Reminder]);
+        return reminder as Reminder;
+      } catch (err) {
+        // No connectivity — same local-fallback shape as the isBackendConfigured
+        // branch above, instead of throwing into AddReminderModal's try/finally
+        // (which has no catch) and crashing with an unhandled rejection.
+        console.warn('[RemindersProvider] createManualReminder failed, saved locally only:', err);
+        const created: Reminder = {
+          id: `local-reminder-${type}-${Date.now()}`,
+          pet_id: petId,
+          owner_id: 'local',
+          type,
+          due_date,
+          completed_at: null,
+          source: 'manual',
+          created_at: new Date().toISOString(),
+        };
+        setReminders((prev) => [...prev, created]);
+        return created;
+      }
     },
     [petId]
   );
@@ -200,7 +230,14 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
     );
 
     if (isBackendConfigured) {
-      await api.patchReminder(reminderId, { completed_at: completedAt });
+      try {
+        await api.patchReminder(reminderId, { completed_at: completedAt });
+      } catch (err) {
+        // Local state is already updated optimistically above — just log it. The
+        // server falling out of sync until the next successful write beats throwing
+        // an unhandled rejection from a checkbox tap.
+        console.warn('[RemindersProvider] markCompleted failed to sync:', err);
+      }
     }
   }, []);
 

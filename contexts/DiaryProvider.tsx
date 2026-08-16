@@ -151,9 +151,27 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
         return optimistic;
       }
 
-      const { entry } = await api.addDiaryEntry({ pet_id: petId, ...input });
-      setEntries((prev) => [entry as DiaryEntry, ...prev]);
-      return entry as DiaryEntry;
+      try {
+        const { entry } = await api.addDiaryEntry({ pet_id: petId, ...input });
+        setEntries((prev) => [entry as DiaryEntry, ...prev]);
+        return entry as DiaryEntry;
+      } catch (err) {
+        // No connectivity — save locally instead of throwing (would otherwise be an
+        // unhandled rejection in AddEntryModal, which only has try/finally around this
+        // call). The server never saw it, so it won't survive a real reload, but the
+        // entry shows up immediately instead of the screen erroring out.
+        console.warn('[DiaryProvider] addEntry failed, saved locally only:', err);
+        const optimistic: DiaryEntry = {
+          id: `local-${Date.now()}`,
+          pet_id: petId,
+          owner_id: 'local',
+          mood_tag: null,
+          created_at: new Date().toISOString(),
+          ...input,
+        } as DiaryEntry;
+        setEntries((prev) => [optimistic, ...prev]);
+        return optimistic;
+      }
     },
     [petId]
   );

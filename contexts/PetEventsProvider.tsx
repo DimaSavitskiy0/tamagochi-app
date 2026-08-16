@@ -97,9 +97,27 @@ export function PetEventsProvider({ children }: { children: ReactNode }) {
         return created;
       }
 
-      const { event } = await api.addPetEvent({ pet_id: petId, title: input.title, event_date, notes: input.notes ?? null });
-      setEvents((prev) => [...prev, event as PetEvent].sort((a, b) => (a.event_date < b.event_date ? -1 : 1)));
-      return event as PetEvent;
+      try {
+        const { event } = await api.addPetEvent({ pet_id: petId, title: input.title, event_date, notes: input.notes ?? null });
+        setEvents((prev) => [...prev, event as PetEvent].sort((a, b) => (a.event_date < b.event_date ? -1 : 1)));
+        return event as PetEvent;
+      } catch (err) {
+        // No connectivity — same local-fallback shape as the isBackendConfigured
+        // branch above, instead of throwing into AddEventModal's try/finally (which
+        // has no catch) and crashing with an unhandled rejection.
+        console.warn('[PetEventsProvider] addEvent failed, saved locally only:', err);
+        const created: PetEvent = {
+          id: `local-event-${Date.now()}`,
+          pet_id: petId,
+          owner_id: 'local',
+          title: input.title,
+          event_date,
+          notes: input.notes ?? null,
+          created_at: new Date().toISOString(),
+        };
+        setEvents((prev) => [...prev, created].sort((a, b) => (a.event_date < b.event_date ? -1 : 1)));
+        return created;
+      }
     },
     [petId]
   );
@@ -108,7 +126,13 @@ export function PetEventsProvider({ children }: { children: ReactNode }) {
     setEvents((prev) => prev.filter((event) => event.id !== eventId));
 
     if (isBackendConfigured) {
-      await api.deletePetEvent(eventId);
+      try {
+        await api.deletePetEvent(eventId);
+      } catch (err) {
+        // Local state already updated optimistically above — log and move on rather
+        // than throwing an unhandled rejection from a delete tap.
+        console.warn('[PetEventsProvider] deleteEvent failed to sync:', err);
+      }
     }
   }, []);
 
