@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import { isEmailConfigured, sendPasswordResetEmail } from '../lib/email';
-import { BadRequest, Unauthorized } from '../lib/errors';
+import { ApiError, BadRequest, Unauthorized } from '../lib/errors';
 import {
   generateRefreshToken,
   generateResetCode,
@@ -14,6 +14,7 @@ import {
 } from '../lib/jwt';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { prisma } from '../lib/prisma';
+import { isRustorePushSendConfigured, sendRustorePush } from '../lib/rustorePushSend';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 
@@ -230,15 +231,36 @@ authRouter.patch(
 
 // Called by the client once it obtains a RuStore Push token (see
 // lib/rustorePushNotifications.ts) — no-op if RuStore Pay/Push isn't set up on this
-// build, in which case the client never calls this at all. Storing the token doesn't
-// send anything by itself — actually sending a push still needs a separate call to
-// RuStore's own server-side Send API, not implemented yet.
+// build, in which case the client never calls this at all.
 authRouter.patch(
   '/push-token',
   requireAuth,
   asyncHandler(async (req, res) => {
     const { token } = pushTokenSchema.parse(req.body);
     await prisma.user.update({ where: { id: req.userId }, data: { rustorePushToken: token } });
+    res.status(204).send();
+  })
+);
+
+// Sends a real push to the caller's own registered device — exists purely to verify the
+// RuStore Console credentials + a real device's token actually work end-to-end (see
+// lib/rustorePushSend.ts), not used by any app feature yet.
+authRouter.post(
+  '/send-test-push',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (!isRustorePushSendConfigured()) {
+      throw new ApiError(503, 'RuStore Push Send API не настроен на сервере (RUSTORE_PUSH_PROJECT_ID/RUSTORE_PUSH_AUTH_TOKEN)');
+    }
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: req.userId } });
+    if (!user.rustorePushToken) {
+      throw BadRequest('У аккаунта ещё нет зарегистрированного push-токена');
+    }
+    await sendRustorePush({
+      tokens: [user.rustorePushToken],
+      title: 'ЛапGo',
+      body: 'Тестовое уведомление — если вы это видите, пуши работают.',
+    });
     res.status(204).send();
   })
 );

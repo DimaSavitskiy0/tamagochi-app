@@ -131,6 +131,9 @@ export const api = {
     request<{ user: ApiUser }>('/auth/me', { method: 'PATCH', body: profile }),
   updatePushToken: (token: string | null) =>
     request<void>('/auth/push-token', { method: 'PATCH', body: { token } }),
+  // Exists purely to verify RuStore Console Send API credentials + a real device's
+  // token work end-to-end — not called by any app feature yet.
+  sendTestPush: () => request<void>('/auth/send-test-push', { method: 'POST' }),
 
   getMyPet: () => request<{ pet: unknown }>('/pets/mine'),
   patchPet: (id: string, patch: Record<string, unknown>) =>

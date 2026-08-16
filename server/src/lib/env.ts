@@ -18,6 +18,11 @@ export const env = {
   // AES-256 key (base64) RuStore Console hands you once when you connect the server
   // notifications URL under Monetization → Server notifications. See lib/rustorePay.ts.
   rustoreWebhookSecret: process.env.RUSTORE_WEBHOOK_SECRET ?? '',
+  // From RuStore Console → app → Push-уведомления → Проекты: project_id, and the
+  // service token (ss_token) shown there — used as providers.rustore.auth_token when
+  // calling RuStore's push Send API. See lib/rustorePushSend.ts.
+  rustorePushProjectId: process.env.RUSTORE_PUSH_PROJECT_ID ?? '',
+  rustorePushAuthToken: process.env.RUSTORE_PUSH_AUTH_TOKEN ?? '',
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
   // SMTP is only needed for POST /auth/forgot-password — without it, the endpoint still
   // works (code is generated and stored) but no email actually goes out, same "optional,
