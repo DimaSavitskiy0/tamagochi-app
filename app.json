@@ -58,9 +58,10 @@
       [
         "./plugins/withRuStorePush",
         {
-          "projectId": "REPLACE_WITH_RUSTORE_PUSH_PROJECT_ID"
+          "projectId": "RevOcN0b1gQBZcOJsBSbkS3VQ5YANtdh"
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,0 +1,64 @@
+workflows:
+  android-test-build:
+    name: Android — тестовая сборка (debug-подпись)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      node: 22
+      groups:
+        # Одна общая группа "production" в Codemagic UI → Environment variables — там же
+        # лежат EXPO_PUBLIC_API_URL, KEYSTORE_BASE64/KEYSTORE_PASSWORD/KEY_ALIAS. Этой
+        # сборке ключ подписи не нужен (используется debug-подпись), но раз всё в одной
+        # группе — не страшно, просто не используется здесь.
+        - production
+    scripts:
+      - name: Собрать .env из переменных Codemagic
+        script: |
+          echo "EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL" > .env
+      - name: npm ci
+        script: npm ci
+      - name: expo prebuild (генерирует android/ заново каждый раз — не коммитится в git)
+        script: npx expo prebuild -p android --no-install
+      - name: gradlew assembleRelease (debug-подпись — для теста на своём телефоне)
+        script: |
+          cd android
+          ./gradlew assembleRelease
+    artifacts:
+      - android/app/build/outputs/apk/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - igumnovaprof@gmail.com
+
+  android-release-build:
+    name: Android — релизная сборка для RuStore (боевая подпись)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      node: 22
+      groups:
+        - production
+    scripts:
+      - name: Собрать .env из переменных Codemagic
+        script: |
+          echo "EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL" > .env
+      - name: npm ci
+        script: npm ci
+      - name: expo prebuild (генерирует android/ заново каждый раз — не коммитится в git)
+        script: npx expo prebuild -p android --no-install
+      - name: Восстановить keystore из переменных Codemagic
+        script: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > $CM_BUILD_DIR/release.jks
+          echo "LAPGO_KEYSTORE_PATH=$CM_BUILD_DIR/release.jks" >> $CM_ENV
+          echo "LAPGO_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $CM_ENV
+          echo "LAPGO_KEY_ALIAS=$KEY_ALIAS" >> $CM_ENV
+      - name: gradlew bundleRelease (боевая подпись — .aab для загрузки в RuStore Console)
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/**/*.aab
+    publishing:
+      email:
+        recipients:
+          - igumnovaprof@gmail.com

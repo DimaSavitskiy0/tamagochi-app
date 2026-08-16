@@ -24,11 +24,16 @@ services:
       PORT: 3000
       PRO_PLAN_PRICE_RUB: ${PRO_PLAN_PRICE_RUB:-199.00}
       APP_RETURN_URL: ${APP_RETURN_URL:-}
-      # Опционально: без них ИИ-совет/оплата ЮKassa просто не работают
-      # (503 на соответствующих роутах), остальной сервис не ломается.
+      # Опционально: без них ИИ-совет/RuStore Pay/Push просто не работают (503 на
+      # соответствующих роутах), остальной сервис не ломается.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID:-}
-      YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY:-}
+      RUSTORE_WEBHOOK_SECRET: ${RUSTORE_WEBHOOK_SECRET:-}
+      RUSTORE_PUSH_PROJECT_ID: ${RUSTORE_PUSH_PROJECT_ID:-}
+      RUSTORE_PUSH_AUTH_TOKEN: ${RUSTORE_PUSH_AUTH_TOKEN:-}
+      RUSTORE_API_TOKEN: ${RUSTORE_API_TOKEN:-}
+      RUSTORE_API_KEY_ID: ${RUSTORE_API_KEY_ID:-}
+      RUSTORE_APP_ID: ${RUSTORE_APP_ID:-}
+      RUSTORE_SUBSCRIPTION_PRODUCT_CODE: ${RUSTORE_SUBSCRIPTION_PRODUCT_CODE:-lapgo_pro_monthly}
       # Опционально: без SMTP_HOST код восстановления пароля просто логируется
       # в консоль контейнера вместо реальной отправки письмом.
       SMTP_HOST: ${SMTP_HOST:-}

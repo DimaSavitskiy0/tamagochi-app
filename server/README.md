@@ -132,6 +132,20 @@ grace/hold-периоды, отмену). Сервер только слушае
    уведомление (`TEST_EVENT`), только после этого включать реальные уведомления.
 5. Клиентская интеграция (нативный Android-модуль, `expo prebuild`, gradle/manifest) —
    отдельный шаг, не в этом сервере. См. `lib/rustorePay.ts` в корне репозитория.
+6. (Необязательно) Кнопка «Отменить подписку» прямо в приложении — без этого шага
+   пользователь всё ещё может отменить автопродление через само приложение RuStore.
+   RuStore Console → **API RuStore** → «Создать ключ»: область доступа — приложение
+   ЛапGo, методы — только **«Получение данных подписки»** и **«Отмена подписки»**
+   (не выбирайте «Все методы» — доступ должен быть минимальным).
+   - Показанное значение (длинный блок — это RSA-приватный ключ, а не готовый токен) —
+     в `RUSTORE_API_TOKEN`.
+   - Рядом с ключом в списке «API RuStore» есть колонка **«ID ключа»** (не секрет,
+     просто число) — в `RUSTORE_API_KEY_ID`.
+   - Сервер сам подписывает этим ключом временную метку и обменивает на короткоживущий
+     (15 минут) токен перед каждым запросом — см. `src/lib/rustoreApiAuth.ts`, ничего
+     вручную обновлять не нужно.
+   - Это отдельный ключ от `RUSTORE_PUSH_AUTH_TOKEN` (§4) — у него другая область
+     доступа.
 
 ### 4. RuStore Push (уведомления, необязательно)
 
@@ -175,6 +189,29 @@ grace/hold-периоды, отмену). Сервер только слушае
 скобках и подтвердить формулировки. Регистрация на сервере требует согласия
 (`consent: true`), время согласия сохраняется в `users.consent_given_at`.
 
+## Сборка Android-приложения (Codemagic)
+
+`codemagic.yaml` в корне репозитория — то же самое устройство сборки, что уже
+используется для второго приложения (Family Navigator) на этом же аккаунте: два
+воркфлоу, секреты живут только в Codemagic UI (никогда в git, никогда в чате).
+
+1. [codemagic.io](https://codemagic.io) → подключить репозиторий `DimaSavitskiy0/tamagochi-app`.
+2. Codemagic UI → Environment variables → одна группа **`production`**, в ней:
+   - `EXPO_PUBLIC_API_URL=https://lapgo.ru` (не секрет).
+   - `KEYSTORE_BASE64` — содержимое файла `~/keystores/lapgo-release.jks.base64`
+     (сгенерирован локально, см. `scripts/README.md` — тот же принцип, что
+     `family-navigator-release.jks.base64` у второго приложения) — **Secret**.
+   - `KEYSTORE_PASSWORD` — из `~/keystores/lapgo-release.passwords.txt` — **Secret**.
+   - `KEY_ALIAS` — `lapgo`.
+3. **android-test-build** — APK с debug-подписью, для проверки на своём телефоне
+   (переменные keystore тоже видны этой сборке, но не используются в её скрипте).
+4. **android-release-build** — `.aab` с боевой подписью (`lapgoKeystorePath`/пароль/алиас
+   попадают в `android/app/build.gradle` через `plugins/withReleaseSigning.js`, читающий
+   их из переменных окружения `LAPGO_KEYSTORE_*`, которые скрипт сборки экспортирует из
+   группы `production`) — именно этот файл загружается в RuStore Console.
+5. Оба воркфлоу сами прогоняют `expo prebuild -p android` перед сборкой — `android/` не
+   хранится в git (Continuous Native Generation), поэтому руками его готовить не нужно.
+
 ## Структура
 
 - `src/routes/auth.ts` — регистрация (с проверкой согласия на обработку ПДн)/вход/обновление токена (JWT access 15 мин + refresh 30 дней)/восстановление пароля по коду на email
@@ -184,6 +221,8 @@ grace/hold-периоды, отмену). Сервер только слушае
 - `src/routes/subscription.ts` — статус подписки, отмена/возобновление автопродления
 - `src/routes/payments.ts` — приём и расшифровка вебхука RuStore Pay (смена статуса подписки)
 - `src/lib/rustorePay.ts` — расшифровка AES-256-GCM пейлоада вебхука RuStore
+- `src/lib/rustoreApiAuth.ts` — подпись приватным ключом и обмен на короткоживущий Public-Token для RuStore Public API
+- `src/lib/rustoreApi.ts` — отмена подписки + получение данных подписки через RuStore Public API
 - `src/lib/rustorePushSend.ts` — отправка push-уведомлений через RuStore Send API
 - `src/routes/stats.ts` — трекинг активности (уровень использования)
 - `src/jobs/renewSubscriptions.ts` — фоновая задача автопродления подписки раз в час

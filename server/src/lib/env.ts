@@ -23,6 +23,22 @@ export const env = {
   // calling RuStore's push Send API. See lib/rustorePushSend.ts.
   rustorePushProjectId: process.env.RUSTORE_PUSH_PROJECT_ID ?? '',
   rustorePushAuthToken: process.env.RUSTORE_PUSH_AUTH_TOKEN ?? '',
+  // RuStore Console → API RuStore → Создать ключ, scoped to "Получение данных подписки" +
+  // "Отмена подписки" only. Used by lib/rustoreApi.ts for the in-app "Отменить подписку"
+  // button — not the same key/secret as rustorePushAuthToken above (different scope).
+  // The RSA private key itself (PEM or bare base64 body) — not sent directly to RuStore
+  // as a bearer token. See lib/rustoreApiAuth.ts: it's used to sign a short-lived
+  // (900s) JWE exchange, which is the actual value sent as Public-Token.
+  rustoreApiToken: process.env.RUSTORE_API_TOKEN ?? '',
+  // "ID ключа" shown next to the key in RuStore Console → API RuStore — not secret,
+  // identifies which key signed the auth request.
+  rustoreApiKeyId: process.env.RUSTORE_API_KEY_ID ?? '',
+  // Numeric app id from RuStore Console (not secret — same value as consoleAppId in
+  // app.json's withRuStorePay plugin config).
+  rustoreAppId: process.env.RUSTORE_APP_ID ?? '',
+  // Must match the product code created in RuStore Console → Монетизация → Подписки
+  // (see constants/rustore.ts on the client — RUSTORE_PRO_PRODUCT_CODE).
+  rustoreSubscriptionProductCode: process.env.RUSTORE_SUBSCRIPTION_PRODUCT_CODE ?? 'lapgo_pro_monthly',
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
   // SMTP is only needed for POST /auth/forgot-password — without it, the endpoint still
   // works (code is generated and stored) but no email actually goes out, same "optional,

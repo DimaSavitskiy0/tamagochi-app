@@ -44,6 +44,8 @@ type SubscriptionContextValue = {
   startCheckout: () => Promise<{ error: string | null }>;
   startingCheckout: boolean;
   checkoutError: string | null;
+  cancelSubscription: () => Promise<{ error: string | null }>;
+  cancelingSubscription: boolean;
   openSubscriptionManagement: () => Promise<{ error: string | null }>;
 };
 
@@ -55,6 +57,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(isBackendConfigured);
   const [startingCheckout, setStartingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const subscriptionRef = useRef(subscription);
   subscriptionRef.current = subscription;
   // Tracks the fast-poll-after-checkout interval so it can be torn down if this
@@ -166,9 +169,28 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [ownerId, refresh, toggleMockPlan]);
 
-  // RuStore — not our server — owns cancellation/auto-renewal (same model as Google
-  // Play/App Store subscriptions): the user manages it from inside the RuStore app
-  // itself. This just opens RuStore; there's nothing for our own API to mutate.
+  // Cancels at period end via our own server, which in turn calls RuStore's Public API
+  // (see server/src/routes/subscription.ts) — status doesn't flip here immediately, the
+  // background poll above picks up the change once RuStore's webhook lands. If the
+  // server isn't configured for this (RUSTORE_API_TOKEN missing), it 503s and the caller
+  // should fall back to openSubscriptionManagement below.
+  const cancelSubscription = useCallback(async (): Promise<{ error: string | null }> => {
+    setCancelingSubscription(true);
+    try {
+      await api.cancelSubscription();
+      await refresh();
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Не удалось отменить подписку' };
+    } finally {
+      setCancelingSubscription(false);
+    }
+  }, [refresh]);
+
+  // RuStore — not our server, as a fallback — owns cancellation/auto-renewal (same model
+  // as Google Play/App Store subscriptions): the user can always manage it from inside
+  // the RuStore app itself too. This just opens RuStore; there's nothing for our own API
+  // to mutate here.
   const openSubscriptionManagement = useCallback(async (): Promise<{ error: string | null }> => {
     if (!isRustorePayAvailable()) {
       return { error: 'Недоступно в этой сборке — откройте приложение RuStore вручную.' };
@@ -193,6 +215,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         startCheckout,
         startingCheckout,
         checkoutError,
+        cancelSubscription,
+        cancelingSubscription,
         openSubscriptionManagement,
       }}>
       {children}

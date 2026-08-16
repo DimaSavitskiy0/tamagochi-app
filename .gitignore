@@ -34,6 +34,10 @@ yarn-error.*
 .env
 .env*.local
 
+# machine-local helper scripts (hardcode this Mac's SSH key path, not for git)
+scripts/*.command
+scripts/*.app
+
 # typescript
 *.tsbuildinfo
 
