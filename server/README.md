@@ -225,7 +225,7 @@ grace/hold-периоды, отмену). Сервер только слушае
 - `src/lib/rustoreApi.ts` — отмена подписки + получение данных подписки через RuStore Public API
 - `src/lib/rustorePushSend.ts` — отправка push-уведомлений через RuStore Send API
 - `src/routes/stats.ts` — трекинг активности (уровень использования)
-- `src/jobs/renewSubscriptions.ts` — фоновая задача автопродления подписки раз в час
+- `src/jobs/syncRustoreSubscriptions.ts` — ежедневная сверка статуса Pro-подписок через RuStore Public API (подстраховка на случай, если вебхук `payments.ts` что-то пропустил)
 - `src/lib/ai.ts` — генерация персонального совета через Anthropic API
 - `src/middleware/auth.ts` — проверка JWT, аналог `auth.uid()` из Supabase RLS
 - `src/lib/ownership.ts` — проверка владения питомцем, аналог RLS-политик на дочерние таблицы

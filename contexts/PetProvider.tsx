@@ -48,6 +48,12 @@ export function PetProvider({ children }: { children: ReactNode }) {
       try {
         const { pet: fetched } = await api.getMyPet();
         if (isMounted) setPet(fetched as Pet);
+      } catch {
+        // No network (airplane mode, dead connection, etc.) or a transient server
+        // error — keep whatever pet state we already have (the offline MOCK_PET on a
+        // cold start) instead of leaving the screen stuck loading or crashing with an
+        // unhandled rejection. The background poll elsewhere and manual actions below
+        // will pick up real data again once connectivity returns.
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -67,11 +73,22 @@ export function PetProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Stat snapshotting for the diary trend chart happens server-side (see
-      // server/src/routes/pets.ts) whenever hunger/mood/health change — nothing to do
-      // here beyond sending the patch and applying the response.
-      const { pet: updated } = await api.patchPet(pet.id, patch);
-      setPet(updated as Pet);
+      try {
+        // Stat snapshotting for the diary trend chart happens server-side (see
+        // server/src/routes/pets.ts) whenever hunger/mood/health change — nothing to
+        // do here beyond sending the patch and applying the response.
+        const { pet: updated } = await api.patchPet(pet.id, patch);
+        setPet(updated as Pet);
+      } catch (err) {
+        // No connectivity (airplane mode) — apply the change locally so tapping
+        // Кормить/Играть/Уход still feels responsive instead of silently doing
+        // nothing or throwing an unhandled rejection (adjustStat below doesn't await
+        // this). The server never saw the change, so it'll be out of sync with the
+        // snapshot history until the next successful update, but that's a much better
+        // failure mode than an error screen while offline.
+        setPet((prev) => ({ ...prev, ...patch, updated_at: new Date().toISOString() }));
+        console.warn('[PetProvider] updatePet failed, applied locally only:', err);
+      }
     },
     [pet.id]
   );

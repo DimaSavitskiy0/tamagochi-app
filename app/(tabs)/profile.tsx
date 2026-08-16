@@ -43,6 +43,9 @@ export default function ProfileScreen() {
   const [editingOwner, setEditingOwner] = useState(false);
   const [editingPet, setEditingPet] = useState(false);
   const [manageError, setManageError] = useState<string | null>(null);
+  // RuStore cancels at period end — subscription.status doesn't visibly change right
+  // after the call succeeds, so without this the tap looks like it did nothing.
+  const [cancelSuccessMessage, setCancelSuccessMessage] = useState<string | null>(null);
   // Briefly shows "Скопировано" on whichever field was just copied (id or support
   // email), instead of a toast library for a single one-off confirmation.
   const [copiedField, setCopiedField] = useState<'id' | 'email' | null>(null);
@@ -144,11 +147,13 @@ export default function ProfileScreen() {
           {isPro && (
             <View style={styles.subscriptionActions}>
               {manageError ? <Text style={styles.checkoutErrorText}>{manageError}</Text> : null}
+              {cancelSuccessMessage ? <Text style={styles.cancelSuccessText}>{cancelSuccessMessage}</Text> : null}
               <Pressable
                 style={[styles.secondaryButton, { borderColor: tint }]}
                 onPress={async () => {
                   const { error } = await openSubscriptionManagement();
                   setManageError(error);
+                  setCancelSuccessMessage(null);
                 }}>
                 <Text style={[styles.secondaryButtonLabel, { color: tint }]}>Управлять подпиской в RuStore</Text>
               </Pressable>
@@ -167,6 +172,9 @@ export default function ProfileScreen() {
                         onPress: async () => {
                           const { error } = await cancelSubscription();
                           setManageError(error);
+                          setCancelSuccessMessage(
+                            error ? null : 'Автопродление отключено — Pro останется активной до конца периода.'
+                          );
                         },
                       },
                     ]
@@ -183,7 +191,7 @@ export default function ProfileScreen() {
 
           {!isPro && (
             <View style={[styles.offerCard, { borderColor: tint }]}>
-              <Text style={styles.offerTitle}>✨ Перейдите на Pro</Text>
+              <Text style={styles.offerTitle}>✨ ЛапGo Pro</Text>
               {PRO_BENEFITS.map((benefit) => (
                 <View key={benefit} style={styles.benefitRow}>
                   <Ionicons name="checkmark-circle" size={14} color={tint} />
@@ -373,6 +381,12 @@ const styles = StyleSheet.create({
   },
   checkoutErrorText: {
     color: '#e5484d',
+    fontSize: 12,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  cancelSuccessText: {
+    color: '#2e9e5b',
     fontSize: 12,
     marginBottom: 6,
     textAlign: 'center',

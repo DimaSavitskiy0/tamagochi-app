@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 
 import { env } from './lib/env';
+import { scheduleRustoreSubscriptionSync } from './jobs/syncRustoreSubscriptions';
 import { errorHandler } from './middleware/errorHandler';
 import { authRouter } from './routes/auth';
 import { diaryRouter } from './routes/diary';
@@ -38,3 +39,7 @@ app.use(errorHandler);
 app.listen(env.port, () => {
   console.log(`lapgo-server listening on port ${env.port}`);
 });
+
+// No-op if RuStore Public API isn't configured (RUSTORE_API_TOKEN/RUSTORE_API_KEY_ID) —
+// see jobs/syncRustoreSubscriptions.ts.
+scheduleRustoreSubscriptionSync();

@@ -107,6 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setOfflineSignedOut(saved.offlineSignedOut);
           setSkipOnboarding(saved.skipOnboarding);
         }
+      } catch {
+        // Corrupted AsyncStorage entry (shouldn't normally happen, but JSON.parse can
+        // throw) — fall back to the defaults already in state rather than crashing.
       } finally {
         setGuestStateRestored(true);
         setLoading(false);
