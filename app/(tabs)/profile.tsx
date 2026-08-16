@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -36,6 +36,8 @@ export default function ProfileScreen() {
     startCheckout,
     startingCheckout,
     checkoutError,
+    cancelSubscription,
+    cancelingSubscription,
     openSubscriptionManagement,
   } = useSubscription();
   const [editingOwner, setEditingOwner] = useState(false);
@@ -149,6 +151,32 @@ export default function ProfileScreen() {
                   setManageError(error);
                 }}>
                 <Text style={[styles.secondaryButtonLabel, { color: tint }]}>Управлять подпиской в RuStore</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.secondaryButton, styles.cancelButton, { opacity: cancelingSubscription ? 0.6 : 1 }]}
+                disabled={cancelingSubscription}
+                onPress={() => {
+                  Alert.alert(
+                    'Отменить подписку?',
+                    'Pro останется активной до конца оплаченного периода, дальше автопродление не спишется.',
+                    [
+                      { text: 'Не отменять', style: 'cancel' },
+                      {
+                        text: 'Отменить подписку',
+                        style: 'destructive',
+                        onPress: async () => {
+                          const { error } = await cancelSubscription();
+                          setManageError(error);
+                        },
+                      },
+                    ]
+                  );
+                }}>
+                {cancelingSubscription ? (
+                  <ActivityIndicator color="#e04545" />
+                ) : (
+                  <Text style={[styles.secondaryButtonLabel, styles.cancelButtonLabel]}>Отменить подписку</Text>
+                )}
               </Pressable>
             </View>
           )}
@@ -377,7 +405,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  subscriptionActions: {},
+  subscriptionActions: { gap: 8 },
   secondaryButton: {
     borderWidth: 1.5,
     borderRadius: 10,
@@ -387,6 +415,12 @@ const styles = StyleSheet.create({
   secondaryButtonLabel: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  cancelButton: {
+    borderColor: 'rgba(224,69,69,0.4)',
+  },
+  cancelButtonLabel: {
+    color: '#e04545',
   },
   legalHint: {
     fontSize: 10,
