@@ -24,13 +24,20 @@ export default function SignInScreen() {
   const [pendingAction, setPendingAction] = useState<Action>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canSubmit = email.trim().length > 3 && password.length >= 6 && pendingAction === null;
-  // Only registration requires consent — signing back in with an existing account
-  // doesn't collect any new personal data.
-  const canRegister = canSubmit && consent;
+  const fieldsValid = email.trim().length > 3 && password.length >= 6;
+  const isBusy = pendingAction !== null;
 
+  // Buttons below are never `disabled` — an inertly-greyed-out button with no
+  // explanation reads as "broken" to a reviewer who just taps it without filling the
+  // form first (this is literally why RuStore's moderator rejected the build: "кнопка
+  // регистрации некликабельна"). Instead, pressing always responds — either by
+  // submitting, or by explaining exactly what's missing.
   const handleSignIn = async () => {
-    if (!canSubmit) return;
+    if (isBusy) return;
+    if (!fieldsValid) {
+      setErrorMessage('Введите email и пароль (от 6 символов)');
+      return;
+    }
     setErrorMessage(null);
     setPendingAction('sign-in');
     const result = await signInWithPassword(email.trim(), password);
@@ -42,7 +49,15 @@ export default function SignInScreen() {
   };
 
   const handleRegister = async () => {
-    if (!canRegister) return;
+    if (isBusy) return;
+    if (!fieldsValid) {
+      setErrorMessage('Введите email и пароль (от 6 символов)');
+      return;
+    }
+    if (!consent) {
+      setErrorMessage('Нужно согласие на публичную оферту и обработку персональных данных');
+      return;
+    }
     setErrorMessage(null);
     setPendingAction('sign-up');
     const result = await signUp(email.trim(), password, consent);
@@ -100,15 +115,13 @@ export default function SignInScreen() {
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
-          style={[styles.submitButton, { backgroundColor: tint, opacity: canSubmit ? 1 : 0.5 }]}
-          disabled={!canSubmit}
+          style={[styles.submitButton, { backgroundColor: tint, opacity: isBusy ? 0.5 : 1 }]}
           onPress={handleSignIn}>
           {pendingAction === 'sign-in' ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitLabel}>Войти</Text>}
         </Pressable>
 
         <Pressable
-          style={[styles.registerButton, { borderColor: tint, opacity: canRegister ? 1 : 0.5 }]}
-          disabled={!canRegister}
+          style={[styles.registerButton, { borderColor: tint, opacity: isBusy ? 0.5 : 1 }]}
           onPress={handleRegister}>
           {pendingAction === 'sign-up' ? (
             <ActivityIndicator color={tint} />
