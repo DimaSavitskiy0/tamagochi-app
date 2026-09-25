@@ -18,10 +18,14 @@ export default function ForgotPasswordScreen() {
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canSubmit = email.trim().length > 3 && !sending;
-
+  // Always pressable (RuStore moderation rejects a greyed-out button that silently does
+  // nothing as "не кликабельна") — invalid input explains itself instead.
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (sending) return;
+    if (email.trim().length <= 3) {
+      setErrorMessage('Введите email, на который зарегистрирован аккаунт');
+      return;
+    }
     setErrorMessage(null);
     setSending(true);
     try {
@@ -54,8 +58,8 @@ export default function ForgotPasswordScreen() {
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
-          style={[styles.submitButton, { backgroundColor: tint, opacity: canSubmit ? 1 : 0.5 }]}
-          disabled={!canSubmit}
+          style={[styles.submitButton, { backgroundColor: tint, opacity: sending ? 0.5 : 1 }]}
+          disabled={sending}
           onPress={handleSubmit}>
           {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitLabel}>Отправить код</Text>}
         </Pressable>
