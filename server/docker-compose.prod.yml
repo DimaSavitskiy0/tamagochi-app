@@ -43,11 +43,21 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     command: sh -c "npx prisma migrate deploy && node dist/index.js"
-    # Пока нет домена, наружу (в интернет) не публикуем — только на localhost
-    # сервера, для проверки через curl по SSH. Как появится домен, порт уберём
-    # совсем и подключим сервис к сети общего Caddy (см. server/README.md).
+    # Только на localhost сервера — для проверки через curl по SSH.
     ports:
       - "127.0.0.1:3001:3000"
+    # api сам входит в сеть общего Caddy (family-navigator-backend), поэтому связь
+    # переживает пересоздание/перезапуск Caddy. Раньше Caddy подключали к нашей сети
+    # вручную (`docker network connect`) — такое подключение теряется при пересоздании Caddy.
+    networks:
+      - default
+      - caddy
 
 volumes:
   postgres_data:
+
+networks:
+  caddy:
+    external: true
+    # Проверить точное имя: `docker network ls` на сервере.
+    name: family-navigator-backend_default

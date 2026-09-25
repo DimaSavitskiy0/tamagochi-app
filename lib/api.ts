@@ -105,7 +105,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}) as { error?: string });
-    throw new ApiRequestError(response.status, data.error ?? `Ошибка запроса (${response.status})`);
+    // 502/503/504 come from the reverse proxy when the API itself is down — a raw
+    // "Ошибка запроса (502)" reads like a broken button, so say what's actually going on.
+    const fallback =
+      response.status >= 500
+        ? 'Сервер временно недоступен. Попробуйте ещё раз через пару минут.'
+        : `Ошибка запроса (${response.status})`;
+    throw new ApiRequestError(response.status, data.error ?? fallback);
   }
 
   if (response.status === 204) return undefined as T;
