@@ -1,7 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { api, isBackendConfigured, onSessionExpired, restoreTokens, setTokens, type ApiUser } from '@/lib/api';
+import {
+  api,
+  ApiRequestError,
+  CACHED_USER_KEY,
+  isBackendConfigured,
+  onSessionExpired,
+  restoreTokens,
+  setTokens,
+  type ApiUser,
+} from '@/lib/api';
 
 // Offline/guest mode has no real backend session to restore from, so its identity
 // (name/phone/email, onboarding state) is persisted here instead — otherwise it would
@@ -72,7 +81,13 @@ function errorMessage(err: unknown, fallback: string): string {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(isBackendConfigured);
-  const [user, setUser] = useState<ApiUser | null>(null);
+  const [user, setUserState] = useState<ApiUser | null>(null);
+  // Every confirmed user is also cached, so the next cold start without internet can
+  // still open the account (see the restore effect below).
+  const setUser = (next: ApiUser | null) => {
+    setUserState(next);
+    if (next) AsyncStorage.setItem(CACHED_USER_KEY, JSON.stringify(next)).catch(() => {});
+  };
   // Offline mode has no real backend user to attach a name to, but we still want the
   // "create the owner before the pet" flow to work, so it's kept here instead.
   const [guestProfile, setGuestProfile] = useState<OwnerProfile | null>(null);
@@ -136,8 +151,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { user: restoredUser } = await api.me();
         setUser(restoredUser);
-      } catch {
-        await setTokens(null);
+      } catch (err) {
+        // Only a rejected session means "signed out" (request() already cleared the
+        // tokens in that case). No internet or a server hiccup on launch shouldn't
+        // throw the owner back to the sign-in screen — reopen with the cached user.
+        const cached = await AsyncStorage.getItem(CACHED_USER_KEY).catch(() => null);
+        const unreachable = err instanceof ApiRequestError && (err.status === 0 || err.status >= 500);
+        if (unreachable) {
+          if (cached) {
+            try {
+              setUserState(JSON.parse(cached) as ApiUser);
+            } catch {
+              // Corrupted cache — fall through to the sign-in screen, tokens kept.
+            }
+          }
+        } else {
+          await setTokens(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -146,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fires when a request's silent token refresh fails (refresh token expired/revoked)
     // — the equivalent of Supabase's onAuthStateChange emitting a null session.
     return onSessionExpired(() => {
-      setUser(null);
+      setUserState(null);
       setSessionEpoch((n) => n + 1);
     });
   }, []);
@@ -219,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // just expires naturally within its TTL. Local sign-out proceeds either way.
     }
     await setTokens(null);
-    setUser(null);
+    setUserState(null);
     setSessionEpoch((n) => n + 1);
   };
 

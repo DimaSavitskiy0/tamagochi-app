@@ -25,6 +25,15 @@ Notifications.setNotificationHandler({
 export async function requestNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
 
+  // Android 13+ only shows the notification permission prompt once at least one
+  // channel exists — without this, reminders silently never fire on newer phones.
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Напоминания',
+      importance: Notifications.AndroidImportance.HIGH,
+    });
+  }
+
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   if (existingStatus === 'granted') return true;
 

@@ -1,6 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { api, isBackendConfigured } from '@/lib/api';
+import { api, CACHED_PET_KEY, isBackendConfigured } from '@/lib/api';
 import type { Pet } from '@/types/database';
 
 const MOCK_PET: Pet = {
@@ -29,6 +30,10 @@ type PetContextValue = {
 
 const PetContext = createContext<PetContextValue | undefined>(undefined);
 
+function cachePet(pet: Pet) {
+  AsyncStorage.setItem(CACHED_PET_KEY, JSON.stringify(pet)).catch(() => {});
+}
+
 // A single pet entity is shared across every tab (pet screen, diary, calendar, profile),
 // so its state lives here once instead of each screen's own usePet() call keeping an
 // independent copy — which would silently diverge as soon as one screen edited it.
@@ -48,7 +53,17 @@ export function PetProvider({ children }: { children: ReactNode }) {
       try {
         const { pet: fetched } = await api.getMyPet();
         if (isMounted) setPet(fetched as Pet);
+        cachePet(fetched as Pet);
       } catch {
+        // Offline cold start: show the owner's last known pet rather than the mock one.
+        const cached = await AsyncStorage.getItem(CACHED_PET_KEY).catch(() => null);
+        if (cached && isMounted) {
+          try {
+            setPet(JSON.parse(cached) as Pet);
+          } catch {
+            // Corrupted cache — keep MOCK_PET.
+          }
+        }
         // No network (airplane mode, dead connection, etc.) or a transient server
         // error — keep whatever pet state we already have (the offline MOCK_PET on a
         // cold start) instead of leaving the screen stuck loading or crashing with an
@@ -79,6 +94,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
         // do here beyond sending the patch and applying the response.
         const { pet: updated } = await api.patchPet(pet.id, patch);
         setPet(updated as Pet);
+        cachePet(updated as Pet);
       } catch (err) {
         // No connectivity (airplane mode) — apply the change locally so tapping
         // Кормить/Играть/Уход still feels responsive instead of silently doing

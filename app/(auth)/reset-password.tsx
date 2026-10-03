@@ -23,15 +23,24 @@ export default function ResetPasswordScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const canSubmit =
-    email.trim().length > 3 &&
-    code.trim().length === 6 &&
-    newPassword.length >= 6 &&
-    newPassword === confirmPassword &&
-    !submitting;
+  // Always pressable, same reason as forgot-password.tsx — say what's missing instead.
+  const validationError =
+    email.trim().length <= 3
+      ? 'Введите email'
+      : code.trim().length !== 6
+        ? 'Введите 6-значный код из письма'
+        : newPassword.length < 6
+          ? 'Пароль должен быть не короче 6 символов'
+          : newPassword !== confirmPassword
+            ? 'Пароли не совпадают'
+            : null;
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (submitting) return;
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
     setErrorMessage(null);
     setSubmitting(true);
     try {
@@ -97,8 +106,8 @@ export default function ResetPasswordScreen() {
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
-          style={[styles.submitButton, { backgroundColor: tint, opacity: canSubmit ? 1 : 0.5 }]}
-          disabled={!canSubmit}
+          style={[styles.submitButton, { backgroundColor: tint, opacity: submitting ? 0.5 : 1 }]}
+          disabled={submitting}
           onPress={handleSubmit}>
           {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitLabel}>Сохранить пароль</Text>}
         </Pressable>
