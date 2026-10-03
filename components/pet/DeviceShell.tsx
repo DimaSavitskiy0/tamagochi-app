@@ -35,8 +35,8 @@ const styles = StyleSheet.create({
   shell: {
     width: '100%',
     borderRadius: 44,
-    paddingTop: 14,
-    paddingBottom: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     paddingHorizontal: 18,
     ...cardShadow({ opacity: 0.25, radius: 16, offsetY: 8, elevation: 8 }),
   },
@@ -49,10 +49,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#e3f0d8',
     borderRadius: 22,
     paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   footer: {
-    marginTop: 10,
+    marginTop: 8,
   },
 });
