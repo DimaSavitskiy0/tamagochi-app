@@ -30,13 +30,13 @@ export function StatBar({ label, emoji, value, color, trackColor, labelColor }: 
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 14,
+    marginBottom: 8,
   },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   labelGroup: {
     flexDirection: 'row',
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   track: {
-    height: 14,
+    height: 11,
     borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.08)',
     overflow: 'hidden',

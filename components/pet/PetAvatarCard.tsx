@@ -22,7 +22,7 @@ export function PetAvatarCard({ name, species, onPress, ringColor, nameColor, sc
           style={[styles.avatarWrap, { borderColor: ringColor }]}
           onPress={onPress}
           accessibilityLabel="Изменить вид питомца">
-          <PetCartoonAvatar species={species} size={110} />
+          <PetCartoonAvatar species={species} size={82} />
           {onPress ? (
             <View style={[styles.editBadge, { backgroundColor: ringColor }]}>
               <Ionicons name="pencil" size={13} color="#fff" />
@@ -39,13 +39,13 @@ export function PetAvatarCard({ name, species, onPress, ringColor, nameColor, sc
 const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 0,
   },
   sceneRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 2,
   },
   sceneIconLeft: {
     marginRight: 6,
@@ -56,9 +56,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   avatarWrap: {
-    width: 118,
-    height: 118,
-    borderRadius: 59,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -67,19 +67,19 @@ const styles = StyleSheet.create({
   },
   editBadge: {
     position: 'absolute',
-    bottom: 5,
-    right: 5,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: 2,
+    right: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#fff',
   },
   name: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    marginTop: 2,
+    marginTop: 0,
   },
 });
