@@ -16,7 +16,9 @@ const { withAndroidManifest, withProjectBuildGradle } = require('@expo/config-pl
 // [ЧЕРНОВИК] Falls back to a placeholder if omitted — push registration will fail
 // until a real project is created in Console and the id is passed here.
 
-const RUSTORE_PUSH_MAVEN_URL = 'https://artifactory-external.vkpartner.ru/artifactory/maven';
+// VK shut down artifactory-external.vkpartner.ru (404 everywhere as of 2026-10); the
+// Push SDK's transitive ru.ok.tracer:* deps now only resolve from VK's public Nexus.
+const RUSTORE_PUSH_MAVEN_URL = 'https://nexus-external.vkteam.ru/repository/maven/';
 const PROJECT_ID_PLACEHOLDER = 'REPLACE_WITH_RUSTORE_PUSH_PROJECT_ID';
 
 function withRuStorePushProjectGradle(config) {
