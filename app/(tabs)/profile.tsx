@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader />
-      <View style={styles.content}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.row}>
           <View style={styles.card}>
             <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
@@ -279,7 +279,7 @@ export default function ProfileScreen() {
             <Text style={styles.legalLinksText}>Политика конфиденциальности</Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
 
       <EditFieldsModal
         visible={editingOwner}
@@ -321,8 +321,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: 18,
     paddingVertical: 10,

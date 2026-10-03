@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { View } from '@/components/Themed';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -88,7 +88,10 @@ export default function PetScreen() {
         onNotificationPress={() => setRemindersVisible(true)}
         hasNotification={upcoming.length > 0}
       />
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}>
         <DeviceShell
           footer={
             <DeviceButtons
@@ -140,7 +143,7 @@ export default function PetScreen() {
         </DeviceShell>
 
         <RecommendationsSection pet={pet} entries={entries} reminders={upcoming} events={events} limit={3} />
-      </View>
+      </ScrollView>
 
       <CelebrationToast message={toastMessage} />
 
@@ -180,11 +183,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  // Scrollable so the bottom recommendation cards never end up clipped under the tab bar
+  // on shorter screens (RuStore moderation: Samsung A15, Android 16).
+  scroll: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 2,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
 });
