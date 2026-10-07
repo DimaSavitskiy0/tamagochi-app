@@ -163,6 +163,9 @@ export const api = {
   me: () => request<{ user: ApiUser }>('/auth/me'),
   updateMe: (profile: { firstName: string; lastName: string; phone: string; email: string }) =>
     request<{ user: ApiUser }>('/auth/me', { method: 'PATCH', body: profile }),
+  // Wrong password comes back as 400, not 401 — a 401 here would trip the
+  // refresh-and-sign-out path in request() instead of showing "Неверный пароль".
+  deleteAccount: (password: string) => request<void>('/auth/account', { method: 'DELETE', body: { password } }),
   updatePushToken: (token: string | null) =>
     request<void>('/auth/push-token', { method: 'PATCH', body: { token } }),
   // Exists purely to verify RuStore Console Send API credentials + a real device's

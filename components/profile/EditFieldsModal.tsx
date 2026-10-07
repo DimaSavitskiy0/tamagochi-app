@@ -9,6 +9,7 @@ type Field = {
   key: string;
   label: string;
   placeholder?: string;
+  secure?: boolean;
 };
 
 type EditFieldsModalProps = {
@@ -18,9 +19,24 @@ type EditFieldsModalProps = {
   initialValues: Record<string, string>;
   onClose: () => void;
   onSubmit: (values: Record<string, string>) => Promise<void>;
+  description?: string;
+  submitLabel?: string;
+  submittingLabel?: string;
+  submitColor?: string;
 };
 
-export function EditFieldsModal({ visible, title, fields, initialValues, onClose, onSubmit }: EditFieldsModalProps) {
+export function EditFieldsModal({
+  visible,
+  title,
+  fields,
+  initialValues,
+  onClose,
+  onSubmit,
+  description,
+  submitLabel = 'Сохранить',
+  submittingLabel = 'Сохранение…',
+  submitColor,
+}: EditFieldsModalProps) {
   const colorScheme = useColorScheme();
   const tint = Colors[colorScheme].tint;
   const borderColor = useThemeColor({ light: '#e2e2e2', dark: 'rgba(255,255,255,0.15)' }, 'background');
@@ -67,6 +83,7 @@ export function EditFieldsModal({ visible, title, fields, initialValues, onClose
         </View>
 
         <View style={styles.form}>
+          {description ? <Text style={styles.description}>{description}</Text> : null}
           {fields.map((field) => (
             <View key={field.key} style={styles.field}>
               <Text style={styles.fieldLabel}>{field.label}</Text>
@@ -74,6 +91,8 @@ export function EditFieldsModal({ visible, title, fields, initialValues, onClose
                 value={values[field.key] ?? ''}
                 onChangeText={(text) => setValues((prev) => ({ ...prev, [field.key]: text }))}
                 placeholder={field.placeholder}
+                secureTextEntry={field.secure}
+                autoCapitalize={field.secure ? 'none' : undefined}
                 placeholderTextColor="#888"
                 style={[styles.input, { borderColor, color: textColor }]}
               />
@@ -83,10 +102,10 @@ export function EditFieldsModal({ visible, title, fields, initialValues, onClose
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
           <Pressable
-            style={[styles.saveButton, { backgroundColor: tint, opacity: canSave ? 1 : 0.5 }]}
+            style={[styles.saveButton, { backgroundColor: submitColor ?? tint, opacity: canSave ? 1 : 0.5 }]}
             disabled={!canSave}
             onPress={handleSave}>
-            <Text style={styles.saveButtonLabel}>{saving ? 'Сохранение…' : 'Сохранить'}</Text>
+            <Text style={styles.saveButtonLabel}>{saving ? submittingLabel : submitLabel}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -95,6 +114,12 @@ export function EditFieldsModal({ visible, title, fields, initialValues, onClose
 }
 
 const styles = StyleSheet.create({
+  description: {
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.8,
+    marginBottom: 16,
+  },
   flex: {
     flex: 1,
   },

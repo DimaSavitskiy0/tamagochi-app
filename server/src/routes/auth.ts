@@ -229,6 +229,29 @@ authRouter.patch(
   })
 );
 
+// In-app account deletion — RuStore moderation rule 5.4 requires it to be possible from
+// inside the app, not only via a support email. Re-asks for the password so a borrowed
+// unlocked phone (or a leaked access token) can't wipe the account. Every user-owned
+// table cascades from User (see prisma/schema.prisma), so one delete removes pets,
+// diary, reminders, snapshots, events, subscription row, stats and refresh tokens.
+// A paid RuStore subscription is billed by RuStore, not us — the client tells the owner
+// to cancel it in RuStore before deleting.
+authRouter.delete(
+  '/account',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { password } = z.object({ password: z.string().min(1) }).parse(req.body);
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: req.userId } });
+    if (!(await verifyPassword(password, user.passwordHash))) {
+      throw BadRequest('Неверный пароль');
+    }
+
+    await prisma.user.delete({ where: { id: user.id } });
+    res.status(204).send();
+  })
+);
+
 // Called by the client once it obtains a RuStore Push token (see
 // lib/rustorePushNotifications.ts) — no-op if RuStore Pay/Push isn't set up on this
 // build, in which case the client never calls this at all.
