@@ -27,7 +27,7 @@ function pluralizeDays(count: number): string {
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const tint = Colors[colorScheme].tint;
-  const { signOut, updateProfile, ownerProfile, ownerId } = useAuth();
+  const { signOut, deleteAccount, updateProfile, ownerProfile, ownerId } = useAuth();
   const { pet, updatePet } = usePet();
   const {
     subscription,
@@ -42,6 +42,7 @@ export default function ProfileScreen() {
   } = useSubscription();
   const [editingOwner, setEditingOwner] = useState(false);
   const [editingPet, setEditingPet] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [manageError, setManageError] = useState<string | null>(null);
   // RuStore cancels at period end — subscription.status doesn't visibly change right
   // after the call succeeds, so without this the tap looks like it did nothing.
@@ -270,6 +271,12 @@ export default function ProfileScreen() {
           <Text style={styles.signOutLabel}>Выйти</Text>
         </Pressable>
 
+        {/* RuStore moderation rule 5.4: deleting the account must be possible in-app,
+            not only by emailing support. */}
+        <Pressable style={styles.deleteAccountButton} onPress={() => setDeletingAccount(true)} hitSlop={8}>
+          <Text style={styles.deleteAccountLabel}>Удалить аккаунт</Text>
+        </Pressable>
+
         <View style={styles.legalLinksRow}>
           <Pressable onPress={() => router.push('/legal/offer')}>
             <Text style={styles.legalLinksText}>Публичная оферта</Text>
@@ -299,6 +306,26 @@ export default function ProfileScreen() {
             phone: values.phone.trim(),
             email: values.email.trim(),
           });
+          if (result.error) throw new Error(result.error);
+        }}
+      />
+
+      <EditFieldsModal
+        visible={deletingAccount}
+        title="Удаление аккаунта"
+        description={
+          'Аккаунт и все данные — питомец, дневник, напоминания, история — будут удалены безвозвратно.\n\n' +
+          'Если у вас оформлена подписка Pro, сначала отмените её в RuStore: удаление аккаунта не отключает автопродление.\n\n' +
+          'Для подтверждения введите пароль.'
+        }
+        fields={[{ key: 'password', label: 'Пароль', placeholder: 'Пароль', secure: true }]}
+        initialValues={{ password: '' }}
+        submitLabel="Удалить навсегда"
+        submittingLabel="Удаление…"
+        submitColor="#e5484d"
+        onClose={() => setDeletingAccount(false)}
+        onSubmit={async (values) => {
+          const result = await deleteAccount(values.password);
           if (result.error) throw new Error(result.error);
         }}
       />
@@ -416,6 +443,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 10,
     backgroundColor: 'rgba(229,72,77,0.12)',
+  },
+  deleteAccountButton: {
+    marginTop: 6,
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  deleteAccountLabel: {
+    color: '#e5484d',
+    fontSize: 12,
+    opacity: 0.8,
   },
   signOutLabel: {
     color: '#e5484d',

@@ -54,6 +54,8 @@ type AuthContextValue = {
    * sign-up without it and records when it was given, per 152-ФЗ. */
   signUp: (email: string, password: string, consent: boolean) => Promise<AuthResult>;
   signOut: () => Promise<void>;
+  /** Permanently deletes the account and all its data after re-checking the password. */
+  deleteAccount: (password: string) => Promise<AuthResult>;
   updateProfile: (profile: ProfileUpdate) => Promise<AuthResult>;
   /** Owner's name — from the backend when configured, or the local guest profile offline. */
   ownerProfile: OwnerProfile | null;
@@ -253,6 +255,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionEpoch((n) => n + 1);
   };
 
+  const deleteAccount = async (password: string): Promise<AuthResult> => {
+    if (!isBackendConfigured) {
+      // Offline mode has no server-side account — wiping the local guest state is the
+      // whole deletion, same as signOut already does.
+      await signOut();
+      return { error: null };
+    }
+    try {
+      await api.deleteAccount(password);
+    } catch (err) {
+      return { error: errorMessage(err, 'Не удалось удалить аккаунт') };
+    }
+    // The server already dropped every refresh token with the user row, so there's
+    // nothing to revoke — just forget the local session.
+    await setTokens(null);
+    setUserState(null);
+    setSessionEpoch((n) => n + 1);
+    return { error: null };
+  };
+
   const updateProfile = async (profile: ProfileUpdate): Promise<AuthResult> => {
     if (!isBackendConfigured) {
       setGuestProfile((prev) => ({ ...prev, ...profile }));
@@ -291,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithPassword,
         signUp,
         signOut,
+        deleteAccount,
         updateProfile,
         ownerProfile,
         hasOwnerProfile,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "ЛапGo",
     "slug": "lapgo-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "lapgoapp",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.lapgoapp.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#7c4dff",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
